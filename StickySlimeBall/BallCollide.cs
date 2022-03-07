@@ -153,7 +153,7 @@ namespace StickySlimeBall
                         xVel = vel.X;
                         yVel = vel.Y;
                         hit = true;
-                       // i = collides.Count + 1;
+                        i = collides.Count + 1;
                     }
                     else
                     {

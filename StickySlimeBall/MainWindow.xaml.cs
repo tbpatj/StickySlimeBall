@@ -30,65 +30,79 @@ namespace StickySlimeBall
         /// </summary>
         public partial class MainWindow : Window
         {
-            
+            //objects and lists that store all the items
             List<CollideLine> collides = new List<CollideLine>();
             List<BallCollide> bCollides = new List<BallCollide>();
             List<Particle> particles = new List<Particle>();
             List<Platform> movingPlatforms = new List<Platform>();
             List<InfoText> Information = new List<InfoText>();
             DispatcherTimer timer;
+
+            //key input
             bool keyUp;
             bool keyDown;
             bool keyRight;
-            bool lockCam = true;
             bool keyLeft;
-            int stickyBoost = 200;
-        float rotateTo = 0;
-            int maxBoost = 300;
-            bool touching = false;
-            Vector touchingNormal = new Vector();
+
+            //world properties
             Vector gravity = new Vector(0,-0.1);
+            bool friction = true;
+            bool canStick = false;
+
+            //player properties
+            double xPos = 5100;
+            double yPos = -4100;
             double yVel = 0;
             double xVel = 0;
-        float CamDis = 0;
+            double lastSafeXPos = 5100;
+            double lastSafeYPos = -4100;
+            double ballSize = 25;
+            int stickyBoost = 200;
+            int maxBoost = 300;
+            int died = 0;
             double addedXVel = 0;
             double addedYVel = 0;
-            double xPos = 0;
-            double yPos = 0;
-        double lastSafeXPos = 0;
-        double lastSafeYPos = 0;
-        double lastSafeCamRotate = 0;
-        int lastSafeTouchingIndex = -1;
-        Vector lastSafeTouchingNormal = new Vector();
-        Vector lastSafeGravity = new Vector(0, -0.1);
-            double cameraX = 0;
-        int died = 0;
-            double cameraY = 0;
-            double ballSize = 25;
-            double camRotate = 0;
-        int Score = 0;
-        bool paused = false;
-        int pauseReason = 0;
-        int addedSecond = 0;
-        int addedMinute = 0;
-            bool friction = true;
-            int attatchedCoolDown = 0;
-            int stickingOn = 1;
+            //player collision/surface properties
+            bool touching = false;
             int touchingIndex = -1;
-            bool canStick = false;
-            int lastTouchingTime = 0;
+            int lastSafeTouchingIndex = -1;
+            Vector touchingNormal = new Vector();
+            Vector lastSafeTouchingNormal = new Vector();
+            Vector lastSafeGravity = new Vector(0, -0.1);
             int maxTouchingCountDown = 15;
-            double zoom = 0.6;
             int movingPlatformTouch = -1;
-        int liftedUpSinceTouched = 0;
+            int stickingOn = 1;
+            int liftedUpSinceTouched = 0;
+            int lastTouchingTime = 0;
+
+            //camera properties
+            double cameraX = 0;
+            double cameraY = 0;
+            double zoom = 0.6;
+            double camRotate = 0;
+            float rotateTo = 0;
+            bool lockCam = true;
+            float CamDis = 0;
+            double lastSafeCamRotate = 0;
+
+            // gameplay/gameflow
+            int finalSwitch = 0;
+            bool paused = false;
+            int Score = 0;
+            int pauseReason = 0;
+            int addedSecond = 0;
+            int addedMinute = 0;
+            int lastSecond = 0;
+            int lastMinute = 0;
+            int attatchedCoolDown = 0;
             DateTime startTime = new DateTime();
             int level = 1;
-
             int connectSize = 5;
             Line stickyBoostShown = new Line();
             Random r = new Random();
             public MainWindow()
             {
+                //set up the sticky boost bar
                 InitializeComponent();
                 stickyBoostShown.X1 = 100;
                 stickyBoostShown.Y1 = MyCanvas.ActualHeight + 100;
@@ -97,13 +111,15 @@ namespace StickySlimeBall
                 stickyBoostShown.Stroke = Brushes.DarkGreen;
                 stickyBoostShown.StrokeThickness = 2;
                 MyCanvas.Children.Add(stickyBoostShown);
-            //createLevel1();
-            //SetUpLines();
-            level = 1;
-            LoadLevel(level);
-           // createlevel3();
+           
+                //load up the level
+                level = 1;
+                LoadLevel(level);
+                
+                //calculate all the surface normals
                 GoThroughLines(false, true,true);
-
+                
+                //set up the timer for gameplay and score
                 DateTime now = DateTime.Now;
                 addedSecond = now.Second;
                 addedMinute = now.Minute;
@@ -122,6 +138,7 @@ namespace StickySlimeBall
             }
         private void LoadLevel(int levelNum)
         {
+            //remove all previous children and objects inside the world
             for (int i = 0; i < collides.Count(); i++)
             {
                 CollideLine c = collides[i];
@@ -153,17 +170,20 @@ namespace StickySlimeBall
             movingPlatforms = new List<Platform>();
             Information = new List<InfoText>();
 
+            //reset the timer
             DateTime now = DateTime.Now;
             addedSecond = now.Second;
             addedMinute = now.Minute;
             startTime = now;
-            //MyCanvas.Children.Clear();
+            //set the player to not touching anything
             touchingIndex = -1;
+            //lock the camera to the player
             lockCam = true;
             if (levelNum == 1)
             {
-                xPos = 5100;
-                yPos = -4100;
+                //reset player positions and world properties
+                xPos = 0;
+                yPos = 0;
                 cameraX = 0;
                 cameraY = 0;
                 camRotate = 0;
@@ -176,7 +196,9 @@ namespace StickySlimeBall
                 stickyBoost = maxBoost;
                 Canvas.SetLeft(Ball, (xPos * zoom + (cameraX * zoom)) + MyCanvas.ActualWidth / 2);
                 Canvas.SetTop(Ball, (yPos * zoom + (cameraY * zoom)) + MyCanvas.ActualHeight / 2);
+                //load up all the level resources, such as the lines
                 CreateLevel1();
+                //set up the normals
                 GoThroughLines(false, true, true);
             }
             else if(levelNum == 2)
@@ -216,9 +238,11 @@ namespace StickySlimeBall
             //CreateMovingBlock(0, 210, 300, 80, 75, -1000, 0, false,500, index, true);
             //CreateMovingBlock(500, 210, 300, 80, 75, -1000, 0, false, 500, index, true);
         }
-        int finalSwitch = 0;
-            private void CreateLevel1()
+        
+        private void CreateLevel1()
         {
+
+            //create texts
             CreateInfo("To move left use A/Left.", 0, 125, 0,0, 200, 40, 14, true, 300);
             CreateInfo("To move right use D/right.", -325, 125, -250, 0, 200, 40, 14, true, 300);
             CreateInfo("You can stick to green walls. \n If trying to stick, while touching a surface \n try using the up key to switch more easily.", -325, 385, -200, 350, 300, 80, 14, true, 300);
@@ -247,6 +271,7 @@ namespace StickySlimeBall
             CreateInfo("Really the airvent? Your cheesy.", 5200, -5450, 5300, -5450, 400, 40, 14, true, 400);
 
             level = 1;
+            //create all the collision lines
             CreateLine(-400, -200, -400, 700, true, true);
             CreateLine(-400, -200, 800, -200, false, true);
             CreateLine(-200, 200, 200, 200, true, true);
@@ -274,10 +299,6 @@ namespace StickySlimeBall
              CreateLine(4300, -1700, 4300, -1000, true, true);
 
             CreateLine(3900, -2200, 6000, -2200, false, false);
-
-            //CreateLine(4000, -1700, 4050, -1720, true, false);
-            // CreateLine(4050, -1720, 4150, -1720, true, false);
-            // CreateLine(4150, -1720, 4200, -1700, true, false);
             CreateLine(6000, -1000, 6000, -1700, true, false);
             CreateLine(6000, -1700, 6500, -1700, true, false);
 
@@ -348,7 +369,6 @@ namespace StickySlimeBall
             CreateBlock(1600, -1200, 100, 30, true, true, true, true);
             CreateBlock(2000, -1000, 200, 50, true, true, true, true);
             CreateBlock(2800, -980, 200, 40, true, true, true, true);
-            //createMovingLine(-100, 0, 100, 0, true, true, 200, 0, 200, 300, 0.6F);
 
             int size = collides.Count;
             for (int i = 0; i < size; i++)
@@ -410,13 +430,13 @@ namespace StickySlimeBall
 
             int index2 = CreateMovingBlock(6750, -3990, 250, 10, 5, -500, 0, false, 100, buttonIndex, false);
             CreateMovingBlock(6510, -4100, 10, 100, 5, 0, -200, false, 100, buttonIndex, false);
-            //createMovingBlock(3800, -5300, 100, 10, 5, 0, 300, false, 100, myPower, true);
             CreateMovingBlock(6750, -3970, 250, 10, 5, 0, -20, false, 100, index2, false);
             CreateMovingBlock(410, -100, 10, 100, 5, 0, -200, true, 200, CreateSwitch(200,700,false), false);
             finalSwitch = CreateSwitch(7200, -4000, false);
             CreateMovingBlock(7200, -3990, 100, 10, 5, 0, -3000, false, 200, finalSwitch, true);
-            //CreateMovingPlatform(4400, -1680, 100, 20, 4400, -1680, 5000, -1680, true, 1.5f, 60);
         }
+
+        //utility functions
         public double toRadians(double d)
         {
             return (d * Math.PI / 180.0);
@@ -424,6 +444,17 @@ namespace StickySlimeBall
         public double toDegrees(double r)
         {
             return (r * 180.0 /  Math.PI);
+        }
+        private double Distance(double x1, double y1, double x2, double y2)
+        {
+            return Math.Sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+        }
+        private double PerpVec(Vector v1, Vector v2)
+        {
+            Vector tmp1 = new Vector(v1.X, v1.Y);
+            Vector tmp2 = new Vector(-v2.Y, v2.X);
+            tmp2.Normalize();
+            return (tmp1.X * tmp2.X + tmp1.Y * tmp2.Y);
         }
         private void SetUpLines()
             {
@@ -504,7 +535,6 @@ namespace StickySlimeBall
 
             CreateLine(8500, -450, 8500, 1000, true, true);
             CreateGravityLine(8800, -300, 8800, 600, false, 0.1f);
-            //CreateLine(8800, -300, 8800, 600, false, false);
 
             CreateLine(8800, 600, 9150, 600, false, false);
 
@@ -585,9 +615,6 @@ namespace StickySlimeBall
                 CreateLine((int)Math.Round(x1) + addX, (int)Math.Round(y1) + addY, (int)Math.Round(x2) + addX, (int)Math.Round(y2) + addY, false, false);
 
             }
-             x3 = (float)Math.Sin(toRadians(dir)) * size2X;
-             y3 = (float)Math.Cos(toRadians(dir)) * size2Y;
-            //CreateLine((int)Math.Round(x3) + addX, (int)Math.Round(y3) + addY, 1600, 2300, false, false);
 
             CreateMovingBlock(5100, 20, 100, 20, 5, 0, -3000, true, 200, CreateSwitch(5100, 0, false), true);
             int myPower = CreateElectrical(4000, -4990, collides.Count + 2);
@@ -654,57 +681,57 @@ namespace StickySlimeBall
         }
 
         public void CreateNewBall(int bx, int by, double xVelo, double yVelo, double bBallSize, float gravityX, float gravityY, int type)
-            {
-                BallCollide bc = new BallCollide();
-                bc.xPos = bx;
-                bc.yPos = by;
-                bc.xVel = xVelo;
-                bc.yVel = yVelo;
-                bc.spawnPointX = bx;
-                bc.spawnPointY = by;
-                bc.ballSize = bBallSize;
-                bc.type = type;
-                bc.gravityX = gravityX;
-                bc.gravityY = gravityY;
-                Ellipse shape = new Ellipse();
-                shape.Width = bBallSize * 2 * zoom;
-                shape.Height = bBallSize * 2 * zoom;
-                shape.Stroke = Brushes.Black;
-                shape.Fill = Brushes.Black;
-                shape.StrokeThickness = 2;
+        {
+            BallCollide bc = new BallCollide();
+            bc.xPos = bx;
+            bc.yPos = by;
+            bc.xVel = xVelo;
+            bc.yVel = yVelo;
+            bc.spawnPointX = bx;
+            bc.spawnPointY = by;
+            bc.ballSize = bBallSize;
+            bc.type = type;
+            bc.gravityX = gravityX;
+            bc.gravityY = gravityY;
+            Ellipse shape = new Ellipse();
+            shape.Width = bBallSize * 2 * zoom;
+            shape.Height = bBallSize * 2 * zoom;
+            shape.Stroke = Brushes.Black;
+            shape.Fill = Brushes.Black;
+            shape.StrokeThickness = 2;
 
-                Canvas.SetLeft(shape, (bc.xPos * zoom + (cameraX * zoom)) + Window.Width / 2);
-                Canvas.SetTop(shape, (bc.yPos * zoom + (cameraY * zoom)) + Window.Height / 2);
-                bc.ball = shape;
-                MyCanvas.Children.Add(bc.ball);
-                bCollides.Add(bc);
-            }
-            private void CreateMovingPlatform(int x, int y, int sizeX, int sizeY, int pX1, int pY1, int pX2, int pY2, bool sticks, float moveSpeed, int waitTime)
-            {
-                Platform p = new Platform();
-                p.index1 = collides.Count;
-                p.index2 = p.index1 + 1;
-                p.index3 = p.index1 + 2;
-                p.index4 = p.index1 + 3;
-                CreatePlatformLine(x - sizeX, y - sizeY, x - sizeX, y + sizeY, false, true, movingPlatforms.Count);
-                CreatePlatformLine(x - sizeX, y + sizeY, x + sizeX, y + sizeY, false, true, movingPlatforms.Count);
-                CreatePlatformLine(x + sizeX, y + sizeY, x + sizeX, y - sizeY, false, true, movingPlatforms.Count);
-                CreatePlatformLine(x + sizeX, y - sizeY, x - sizeX, y - sizeY, false, true, movingPlatforms.Count);
-                p.movePoint1X = pX1;
-                p.movePoint1Y = pY1;
-                p.movePoint2X = pX2;
-                p.movePoint2Y = pY2;
-                p.platformSize = new Vector(sizeX, sizeY);
-                p.position = new Vector(x, y);
-                p.moveSpeed = moveSpeed;
-                p.waitTime = waitTime;
-                Vector newVel = new Vector(p.position.X - p.movePoint2X, p.position.Y - p.movePoint2Y);
-                newVel.Normalize();
-                newVel.X = newVel.X * -p.moveSpeed;
-                newVel.Y = newVel.Y * -p.moveSpeed;
-                p.vel = newVel;
-                movingPlatforms.Add(p);
-            }
+            Canvas.SetLeft(shape, (bc.xPos * zoom + (cameraX * zoom)) + Window.Width / 2);
+            Canvas.SetTop(shape, (bc.yPos * zoom + (cameraY * zoom)) + Window.Height / 2);
+            bc.ball = shape;
+            MyCanvas.Children.Add(bc.ball);
+            bCollides.Add(bc);
+        }
+        private void CreateMovingPlatform(int x, int y, int sizeX, int sizeY, int pX1, int pY1, int pX2, int pY2, bool sticks, float moveSpeed, int waitTime)
+        {
+            Platform p = new Platform();
+            p.index1 = collides.Count;
+            p.index2 = p.index1 + 1;
+            p.index3 = p.index1 + 2;
+            p.index4 = p.index1 + 3;
+            CreatePlatformLine(x - sizeX, y - sizeY, x - sizeX, y + sizeY, false, true, movingPlatforms.Count);
+            CreatePlatformLine(x - sizeX, y + sizeY, x + sizeX, y + sizeY, false, true, movingPlatforms.Count);
+            CreatePlatformLine(x + sizeX, y + sizeY, x + sizeX, y - sizeY, false, true, movingPlatforms.Count);
+            CreatePlatformLine(x + sizeX, y - sizeY, x - sizeX, y - sizeY, false, true, movingPlatforms.Count);
+            p.movePoint1X = pX1;
+            p.movePoint1Y = pY1;
+            p.movePoint2X = pX2;
+            p.movePoint2Y = pY2;
+            p.platformSize = new Vector(sizeX, sizeY);
+            p.position = new Vector(x, y);
+            p.moveSpeed = moveSpeed;
+            p.waitTime = waitTime;
+            Vector newVel = new Vector(p.position.X - p.movePoint2X, p.position.Y - p.movePoint2Y);
+            newVel.Normalize();
+            newVel.X = newVel.X * -p.moveSpeed;
+            newVel.Y = newVel.Y * -p.moveSpeed;
+            p.vel = newVel;
+            movingPlatforms.Add(p);
+        }
         private void CreateParticle(float x, float y, float xVel, float yVel, byte R, byte G, byte B, float size, float sizeChange)
         {
             Particle p = new Particle();
@@ -848,28 +875,29 @@ namespace StickySlimeBall
             }
             collides.Add(line);
         }
-            private void CreatePlatformLine(int x1, int y1, int x2, int y2, bool flip, bool sticks, int platformIndex)
+        private void CreatePlatformLine(int x1, int y1, int x2, int y2, bool flip, bool sticks, int platformIndex)
+        {
+            CollideLine line = new CollideLine();
+            //this helps determine collision normals
+            if (flip == true)
             {
-                CollideLine line = new CollideLine();
-                if (flip == true)
-                {
-                    line.x1 = x1;
-                    line.y1 = y1;
-                    line.x2 = x2;
-                    line.y2 = y2;
-                }
-                else
-                {
-                    line.x1 = x2;
-                    line.y1 = y2;
-                    line.x2 = x1;
-                    line.y2 = y1;
-                }
-                Line shape = new Line();
-                shape.X1 = x1;
-                shape.Y1 = y1;
-                shape.X2 = x2;
-                shape.Y2 = y2;
+                line.x1 = x1;
+                line.y1 = y1;
+                line.x2 = x2;
+                line.y2 = y2;
+            }
+            else
+            {
+                line.x1 = x2;
+                line.y1 = y2;
+                line.x2 = x1;
+                line.y2 = y1;
+            }
+            Line shape = new Line();
+            shape.X1 = x1;
+            shape.Y1 = y1;
+            shape.X2 = x2;
+            shape.Y2 = y2;
             if (sticks == false)
             {
                 shape.Stroke = Brushes.Black;
@@ -879,36 +907,36 @@ namespace StickySlimeBall
                 shape.Stroke = Brushes.DarkGreen;
             }
             shape.StrokeThickness = 2;
-                Vector v = new Vector();
-                if (flip == false)
-                {
-                    v = new Vector(x1 - x2, y1 - y2);
-                }
-                else
-                {
-                    v = new Vector(x2 - x1, y2 - y1);
-                }
-                v.Normalize();
-                double tmp = v.X;
-                v.X = v.Y * -1;
-                v.Y = tmp;
-                line.canStick = sticks;
-                line.normal.X = v.X;
-                line.normal.Y = v.Y;
-                line.lineShape = shape;
-                line.isMovingPlatform = true;
-                line.platformIndex = platformIndex;
-                MyCanvas.Children.Add(line.lineShape);
-                line.lastDot.Add(0);
-                for (int i = 0; i < bCollides.Count; i++)
-                {
-
-                    line.lastDot.Add(0);
-                }
-                collides.Add(line);
-
-
+            Vector v = new Vector();
+            if (flip == false)
+            {
+                v = new Vector(x1 - x2, y1 - y2);
             }
+            else
+            {
+                v = new Vector(x2 - x1, y2 - y1);
+            }
+            v.Normalize();
+            double tmp = v.X;
+            v.X = v.Y * -1;
+            v.Y = tmp;
+            line.canStick = sticks;
+            line.normal.X = v.X;
+            line.normal.Y = v.Y;
+            line.lineShape = shape;
+            line.isMovingPlatform = true;
+            line.platformIndex = platformIndex;
+            MyCanvas.Children.Add(line.lineShape);
+            line.lastDot.Add(0);
+            for (int i = 0; i < bCollides.Count; i++)
+            {
+
+                line.lastDot.Add(0);
+            }
+            collides.Add(line);
+
+
+        }
         public int CreateSwitch(int x, int y, bool invert)
         {
             if (invert)
@@ -949,14 +977,14 @@ namespace StickySlimeBall
                 c.MoreData[1] = 0;
             }
 
-                return collides.Count - 1;
-            }
-            public int createButton(int x, int y, bool locks)
-            {
-                int refrence1 = collides.Count;
-                int refrence2 = collides.Count + 1;
-                CreateLine(x - 80, y - 15, x - 100, y, false, false);
-                CreateLine(x + 100, y, x + 80,y - 15, false, false);
+            return collides.Count - 1;
+        }
+        public int createButton(int x, int y, bool locks)
+        {
+            int refrence1 = collides.Count;
+            int refrence2 = collides.Count + 1;
+            CreateLine(x - 80, y - 15, x - 100, y, false, false);
+            CreateLine(x + 100, y, x + 80,y - 15, false, false);
             if (locks)
             {
                 CreateTypeLine(x + 80, y - 15, x - 80, y - 15, false, false, 1, refrence1, refrence2, 1);
@@ -965,9 +993,8 @@ namespace StickySlimeBall
             {
                 CreateTypeLine(x + 80, y - 15, x - 80, y - 15, false, false, 1, refrence1, refrence2, 0);
             }
-                return refrence2 + 1;
-
-            }
+            return refrence2 + 1;
+        }
         public void CreateGravityLine(int x1, int y1, int x2, int y2, bool flip, float strength)
         {
             CollideLine line = new CollideLine();
@@ -1023,69 +1050,69 @@ namespace StickySlimeBall
             }
             collides.Add(line);
         }
-            public void CreateTypeLine(int x1, int y1, int x2, int y2, bool flip, bool sticks, int type, int refrence1, int refrence2, int refrence3)
+        public void CreateTypeLine(int x1, int y1, int x2, int y2, bool flip, bool sticks, int type, int refrence1, int refrence2, int refrence3)
+        {
+            CollideLine line = new CollideLine();
+            if (flip == true)
             {
-                CollideLine line = new CollideLine();
-                if (flip == true)
-                {
-                    line.x1 = x1;
-                    line.y1 = y1;
-                    line.x2 = x2;
-                    line.y2 = y2;
-                }
-                else
-                {
-                    line.x1 = x2;
-                    line.y1 = y2;
-                    line.x2 = x1;
-                    line.y2 = y1;
-                }
-                Line shape = new Line();
-                shape.X1 = x1;
-                shape.Y1 = y1;
-                shape.X2 = x2;
-                shape.Y2 = y2;
-                if (sticks == false)
-                {
-                    shape.Stroke = Brushes.Black;
-                }
-                else
-                {
-                    shape.Stroke = Brushes.DarkGreen;
-                }
-                shape.StrokeThickness = 2;
-                Vector v = new Vector();
-                if (flip == false)
-                {
-                    v = new Vector(x1 - x2, y1 - y2);
-                }
-                else
-                {
-                    v = new Vector(x2 - x1, y2 - y1);
-                }
-                v.Normalize();
-                double tmp = v.X;
-                v.X = v.Y * -1;
-                v.Y = tmp;
-                line.canStick = sticks;
-                line.normal.X = v.X;
-                line.type = type;
-                line.normal.Y = v.Y;
-                line.index1Refrence = refrence1;
-                line.index2Refrence = refrence2;
-                line.index3Refrence = refrence3;
-                line.lineShape = shape;
-                MyCanvas.Children.Add(line.lineShape);
-                line.lastDot.Add(0);
-                for (int i = 0; i < bCollides.Count; i++)
-                {
-
-                    line.lastDot.Add(0);
-                }
-                collides.Add(line);
+                line.x1 = x1;
+                line.y1 = y1;
+                line.x2 = x2;
+                line.y2 = y2;
             }
-            private void CreateMovingLine(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4, bool flip, bool sticks, float repeats, int powerIndex, bool movePower)
+            else
             {
+                line.x1 = x2;
+                line.y1 = y2;
+                line.x2 = x1;
+                line.y2 = y1;
+            }
+            Line shape = new Line();
+            shape.X1 = x1;
+            shape.Y1 = y1;
+            shape.X2 = x2;
+            shape.Y2 = y2;
+            if (sticks == false)
+            {
+                shape.Stroke = Brushes.Black;
+            }
+            else
+            {
+                shape.Stroke = Brushes.DarkGreen;
+            }
+            shape.StrokeThickness = 2;
+            Vector v = new Vector();
+            if (flip == false)
+            {
+                v = new Vector(x1 - x2, y1 - y2);
+            }
+            else
+            {
+                v = new Vector(x2 - x1, y2 - y1);
+            }
+            v.Normalize();
+            double tmp = v.X;
+            v.X = v.Y * -1;
+            v.Y = tmp;
+            line.canStick = sticks;
+            line.normal.X = v.X;
+            line.type = type;
+            line.normal.Y = v.Y;
+            line.index1Refrence = refrence1;
+            line.index2Refrence = refrence2;
+            line.index3Refrence = refrence3;
+            line.lineShape = shape;
+            MyCanvas.Children.Add(line.lineShape);
+            line.lastDot.Add(0);
+            for (int i = 0; i < bCollides.Count; i++)
+            {
+
+                line.lastDot.Add(0);
+            }
+            collides.Add(line);
+        }
+        private void CreateMovingLine(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4, bool flip, bool sticks, float repeats, int powerIndex, bool movePower)
+        {
             CollideLine line = new CollideLine();
             line.MoreData = new float[13];
             line.MoreData[12] = 0;
@@ -1178,250 +1205,245 @@ namespace StickySlimeBall
             }
             collides.Add(line);
         }
-            private void CreateLine(int x1, int y1, int x2, int y2, bool flip, bool sticks)
+        private void CreateLine(int x1, int y1, int x2, int y2, bool flip, bool sticks)
+        {
+            CollideLine line = new CollideLine();
+            if (flip == true)
             {
-                CollideLine line = new CollideLine();
-                if (flip == true)
-                {
-                    line.x1 = x1;
-                    line.y1 = y1;
-                    line.x2 = x2;
-                    line.y2 = y2;
-                }
-                else
-                {
-                    line.x1 = x2;
-                    line.y1 = y2;
-                    line.x2 = x1;
-                    line.y2 = y1;
-                }
-                Line shape = new Line();
-                shape.X1 = x1;
-                shape.Y1 = y1;
-                shape.X2 = x2;
-                shape.Y2 = y2;
-                if (sticks == false)
-                {
-                    shape.Stroke = Brushes.Black;
-                }
-                else
-                {
-                    shape.Stroke = Brushes.DarkGreen;
-                }
-                shape.StrokeThickness = 2;
-                Vector v = new Vector();
-                if (flip == false)
-                {
-                    v = new Vector(x1 - x2, y1 - y2);
-                }
-                else
-                {
-                    v = new Vector(x2 - x1, y2 - y1);
-                }
-                v.Normalize();
-                double tmp = v.X;
-                v.X = v.Y * -1;
-                v.Y = tmp;
-                line.canStick = sticks;
-                line.normal.X = v.X;
-                line.normal.Y = v.Y;
-                line.lineShape = shape;
-                MyCanvas.Children.Add(line.lineShape);
+                line.x1 = x1;
+                line.y1 = y1;
+                line.x2 = x2;
+                line.y2 = y2;
+            }
+            else
+            {
+                line.x1 = x2;
+                line.y1 = y2;
+                line.x2 = x1;
+                line.y2 = y1;
+            }
+            Line shape = new Line();
+            shape.X1 = x1;
+            shape.Y1 = y1;
+            shape.X2 = x2;
+            shape.Y2 = y2;
+            if (sticks == false)
+            {
+                shape.Stroke = Brushes.Black;
+            }
+            else
+            {
+                shape.Stroke = Brushes.DarkGreen;
+            }
+            shape.StrokeThickness = 2;
+            Vector v = new Vector();
+            if (flip == false)
+            {
+                v = new Vector(x1 - x2, y1 - y2);
+            }
+            else
+            {
+                v = new Vector(x2 - x1, y2 - y1);
+            }
+            v.Normalize();
+            double tmp = v.X;
+            v.X = v.Y * -1;
+            v.Y = tmp;
+            line.canStick = sticks;
+            line.normal.X = v.X;
+            line.normal.Y = v.Y;
+            line.lineShape = shape;
+            MyCanvas.Children.Add(line.lineShape);
+            line.lastDot.Add(0);
+            for (int i = 0; i < bCollides.Count; i++)
+            {
+
                 line.lastDot.Add(0);
-                for (int i = 0; i < bCollides.Count; i++)
-                {
-
-                    line.lastDot.Add(0);
-                }
-                collides.Add(line);
-
             }
-            private double Distance(double x1, double y1, double x2, double y2)
-            {
-                return Math.Sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
-            }
-            private void ConnectTwoPoints(int index1, int index2)
-            {
-                CollideLine c1 = collides[index1];
-                CollideLine c2 = collides[index2];
-                double dis1 = Distance(c1.x1, c1.y1, c2.x1, c2.y1);
-                double dis2 = Distance(c1.x1, c1.y1, c2.x2, c2.y2);
-                double dis3 = Distance(c1.x2, c1.y2, c2.x1, c2.y1);
-                double dis4 = Distance(c1.x2, c1.y2, c2.x2, c2.y2);
+            collides.Add(line);
 
-                if (dis1 < dis2 && dis1 < dis3 && dis1 < dis4)
-                {
-                    if (dis1 < connectSize + 1)
-                    {
-                        Vector v1 = new Vector(c1.x1 - c1.x2, c1.y1 - c1.y2);
-                        Vector v2 = new Vector(c2.x1 - c2.x2, c2.y1 - c2.y2);
-                        v1.Normalize();
-                        v2.Normalize();
-                        Vector point1 = new Vector(c1.x1 + v1.X * -connectSize, c1.y1 + v1.Y * -connectSize);
-                        Vector point2 = new Vector(c2.x1 + v2.X * -connectSize, c2.y1 + v2.Y * -connectSize);
-                        c1.x1 = (int)Math.Round(point1.X);
-                        c1.y1 = (int)Math.Round(point1.Y);
-                        c2.x1 = (int)Math.Round(point2.X);
-                        c2.y1 = (int)Math.Round(point2.Y);
-                        Vector normal = new Vector(point1.X - point2.X, point1.Y - point2.Y);
-                        normal.Normalize();
-                        double dot = (c1.normal.X * normal.X) + (c1.normal.Y * normal.Y);
-                    if (dot < 0)
-                    {
-                        if (c1.canStick && c2.canStick)
-                        {
-                            CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), true, true);
-                        }
-                        else
-                        {
-                            CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), true, false);
-                        }
-                    }
-                    else
-                    {
+        }
+       
+        private void ConnectTwoPoints(int index1, int index2)
+        {
+            CollideLine c1 = collides[index1];
+            CollideLine c2 = collides[index2];
+            double dis1 = Distance(c1.x1, c1.y1, c2.x1, c2.y1);
+            double dis2 = Distance(c1.x1, c1.y1, c2.x2, c2.y2);
+            double dis3 = Distance(c1.x2, c1.y2, c2.x1, c2.y1);
+            double dis4 = Distance(c1.x2, c1.y2, c2.x2, c2.y2);
 
-                        if (c1.canStick && c2.canStick)
-                        {
-                            CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), false, true);
-                        }
-                        else
-                        {
-                            CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), false, false);
-                        }
-                    }
-                        
-                    }
-                }
-                else if (dis2 < dis3 && dis2 < dis4)
+            if (dis1 < dis2 && dis1 < dis3 && dis1 < dis4)
+            {
+                if (dis1 < connectSize + 1)
                 {
-                    if (dis2 < connectSize + 1)
+                    Vector v1 = new Vector(c1.x1 - c1.x2, c1.y1 - c1.y2);
+                    Vector v2 = new Vector(c2.x1 - c2.x2, c2.y1 - c2.y2);
+                    v1.Normalize();
+                    v2.Normalize();
+                    Vector point1 = new Vector(c1.x1 + v1.X * -connectSize, c1.y1 + v1.Y * -connectSize);
+                    Vector point2 = new Vector(c2.x1 + v2.X * -connectSize, c2.y1 + v2.Y * -connectSize);
+                    c1.x1 = (int)Math.Round(point1.X);
+                    c1.y1 = (int)Math.Round(point1.Y);
+                    c2.x1 = (int)Math.Round(point2.X);
+                    c2.y1 = (int)Math.Round(point2.Y);
+                    Vector normal = new Vector(point1.X - point2.X, point1.Y - point2.Y);
+                    normal.Normalize();
+                    double dot = (c1.normal.X * normal.X) + (c1.normal.Y * normal.Y);
+                if (dot < 0)
+                {
+                    if (c1.canStick && c2.canStick)
                     {
-                        Vector v1 = new Vector(c1.x1 - c1.x2, c1.y1 - c1.y2);
-                        Vector v2 = new Vector(c2.x2 - c2.x1, c2.y2 - c2.y1);
-                        v1.Normalize();
-                        v2.Normalize();
-                        Vector point1 = new Vector(c1.x1 + v1.X * -connectSize, c1.y1 + v1.Y * -connectSize);
-                        Vector point2 = new Vector(c2.x2 + v2.X * -connectSize, c2.y2 + v2.Y * -connectSize);
-                        c1.x1 = (int)Math.Round(point1.X);
-                        c1.y1 = (int)Math.Round(point1.Y);
-                        c2.x2 = (int)Math.Round(point2.X);
-                        c2.y2 = (int)Math.Round(point2.Y);
-                        Vector normal = new Vector(point1.X - point2.X, point1.Y - point2.Y);
-                        normal.Normalize();
-                        double dot = (c1.normal.X * normal.X) + (c1.normal.Y * normal.Y);
-                    if (dot > 0)
-                    {
-                        if (c1.canStick && c2.canStick)
-                        {
-                            CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), true, true);
-                        }
-                        else
-                        {
-                            CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), true, false);
-                        }
+                        CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), true, true);
                     }
                     else
                     {
-                        if (c1.canStick && c2.canStick)
-                        {
-                            CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), false, true);
-                        }
-                        else
-                        {
-                            CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), false, false);
-                        }
+                        CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), true, false);
                     }
-                    
-                }
-                }
-                else if (dis3 < dis4)
-                {
-                    if (dis3 < connectSize + 1)
-                    {
-                        Vector v1 = new Vector(c1.x2 - c1.x1, c1.y2 - c1.y1);
-                        Vector v2 = new Vector(c2.x1 - c2.x2, c2.y1 - c2.y2);
-                        v1.Normalize();
-                        v2.Normalize();
-                        Vector point1 = new Vector(c1.x2 + v1.X * -connectSize, c1.y2 + v1.Y * -connectSize);
-                        Vector point2 = new Vector(c2.x1 + v2.X * -connectSize, c2.y1 + v2.Y * -connectSize);
-                        c1.x2 = (int)Math.Round(point1.X);
-                        c1.y2 = (int)Math.Round(point1.Y);
-                        c2.x1 = (int)Math.Round(point2.X);
-                        c2.y1 = (int)Math.Round(point2.Y);
-                        Vector normal = new Vector(point1.X - point2.X, point1.Y - point2.Y);
-                        normal.Normalize();
-                        double dot = (c1.normal.X * normal.X) + (c1.normal.Y * normal.Y);
-                    if (dot < 0)
-                    {
-                        if (c1.canStick && c2.canStick)
-                        {
-                            CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), true, true);
-                        }
-                        else
-                        {
-                            CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), true, false);
-                        }
-                    }
-                    else
-                    {
-                        if (c1.canStick && c2.canStick)
-                        {
-                            CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), false, true);
-                        }
-                        else
-                        {
-                            CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), false, false);
-                        }
-                    }
-                    
-                }
                 }
                 else
                 {
-                    if (dis4 < connectSize + 1)
+
+                    if (c1.canStick && c2.canStick)
                     {
-                        Vector v1 = new Vector(c1.x2 - c1.x1, c1.y2 - c1.y1);
-                        Vector v2 = new Vector(c2.x2 - c2.x2, c2.y2 - c2.y1);
-                        v1.Normalize();
-                        v2.Normalize();
-                        Vector point1 = new Vector(c1.x2 + v1.X * -connectSize, c1.y2 + v1.Y * -connectSize);
-                        Vector point2 = new Vector(c2.x2 + v2.X * -connectSize, c2.y2 + v2.Y * -connectSize);
-                        c1.x2 = (int)Math.Round(point1.X);
-                        c1.y2 = (int)Math.Round(point1.Y);
-                        c2.x2 = (int)Math.Round(point2.X);
-                        c2.y2 = (int)Math.Round(point2.Y);
-                        Vector normal = new Vector(point1.X - point2.X, point1.Y - point2.Y);
-                        normal.Normalize();
-                        double dot = (c1.normal.X * normal.X) + (c1.normal.Y * normal.Y);
-                    if (dot < 0)
-                    {
-                        if (c1.canStick && c2.canStick)
-                        {
-                            CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), true, true);
-                        }
-                        else
-                        {
-                            CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), true, false);
-                        }
+                        CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), false, true);
                     }
                     else
                     {
-                        if (c1.canStick && c2.canStick)
-                        {
-                            CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), false, true);
-                        }
-                        else
-                        {
-                            CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), false, false);
-                        }
+                        CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), false, false);
                     }
-                    
                 }
+                        
                 }
-
-
-
             }
+            else if (dis2 < dis3 && dis2 < dis4)
+            {
+                if (dis2 < connectSize + 1)
+                {
+                    Vector v1 = new Vector(c1.x1 - c1.x2, c1.y1 - c1.y2);
+                    Vector v2 = new Vector(c2.x2 - c2.x1, c2.y2 - c2.y1);
+                    v1.Normalize();
+                    v2.Normalize();
+                    Vector point1 = new Vector(c1.x1 + v1.X * -connectSize, c1.y1 + v1.Y * -connectSize);
+                    Vector point2 = new Vector(c2.x2 + v2.X * -connectSize, c2.y2 + v2.Y * -connectSize);
+                    c1.x1 = (int)Math.Round(point1.X);
+                    c1.y1 = (int)Math.Round(point1.Y);
+                    c2.x2 = (int)Math.Round(point2.X);
+                    c2.y2 = (int)Math.Round(point2.Y);
+                    Vector normal = new Vector(point1.X - point2.X, point1.Y - point2.Y);
+                    normal.Normalize();
+                    double dot = (c1.normal.X * normal.X) + (c1.normal.Y * normal.Y);
+                if (dot > 0)
+                {
+                    if (c1.canStick && c2.canStick)
+                    {
+                        CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), true, true);
+                    }
+                    else
+                    {
+                        CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), true, false);
+                    }
+                }
+                else
+                {
+                    if (c1.canStick && c2.canStick)
+                    {
+                        CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), false, true);
+                    }
+                    else
+                    {
+                        CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), false, false);
+                    }
+                }
+                    
+            }
+            }
+            else if (dis3 < dis4)
+            {
+                if (dis3 < connectSize + 1)
+                {
+                    Vector v1 = new Vector(c1.x2 - c1.x1, c1.y2 - c1.y1);
+                    Vector v2 = new Vector(c2.x1 - c2.x2, c2.y1 - c2.y2);
+                    v1.Normalize();
+                    v2.Normalize();
+                    Vector point1 = new Vector(c1.x2 + v1.X * -connectSize, c1.y2 + v1.Y * -connectSize);
+                    Vector point2 = new Vector(c2.x1 + v2.X * -connectSize, c2.y1 + v2.Y * -connectSize);
+                    c1.x2 = (int)Math.Round(point1.X);
+                    c1.y2 = (int)Math.Round(point1.Y);
+                    c2.x1 = (int)Math.Round(point2.X);
+                    c2.y1 = (int)Math.Round(point2.Y);
+                    Vector normal = new Vector(point1.X - point2.X, point1.Y - point2.Y);
+                    normal.Normalize();
+                    double dot = (c1.normal.X * normal.X) + (c1.normal.Y * normal.Y);
+                if (dot < 0)
+                {
+                    if (c1.canStick && c2.canStick)
+                    {
+                        CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), true, true);
+                    }
+                    else
+                    {
+                        CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), true, false);
+                    }
+                }
+                else
+                {
+                    if (c1.canStick && c2.canStick)
+                    {
+                        CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), false, true);
+                    }
+                    else
+                    {
+                        CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), false, false);
+                    }
+                }
+                    
+            }
+            }
+            else
+            {
+                if (dis4 < connectSize + 1)
+                {
+                    Vector v1 = new Vector(c1.x2 - c1.x1, c1.y2 - c1.y1);
+                    Vector v2 = new Vector(c2.x2 - c2.x2, c2.y2 - c2.y1);
+                    v1.Normalize();
+                    v2.Normalize();
+                    Vector point1 = new Vector(c1.x2 + v1.X * -connectSize, c1.y2 + v1.Y * -connectSize);
+                    Vector point2 = new Vector(c2.x2 + v2.X * -connectSize, c2.y2 + v2.Y * -connectSize);
+                    c1.x2 = (int)Math.Round(point1.X);
+                    c1.y2 = (int)Math.Round(point1.Y);
+                    c2.x2 = (int)Math.Round(point2.X);
+                    c2.y2 = (int)Math.Round(point2.Y);
+                    Vector normal = new Vector(point1.X - point2.X, point1.Y - point2.Y);
+                    normal.Normalize();
+                    double dot = (c1.normal.X * normal.X) + (c1.normal.Y * normal.Y);
+                if (dot < 0)
+                {
+                    if (c1.canStick && c2.canStick)
+                    {
+                        CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), true, true);
+                    }
+                    else
+                    {
+                        CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), true, false);
+                    }
+                }
+                else
+                {
+                    if (c1.canStick && c2.canStick)
+                    {
+                        CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), false, true);
+                    }
+                    else
+                    {
+                        CreateLine((int)Math.Round(point1.X), (int)Math.Round(point1.Y), (int)Math.Round(point2.X), (int)Math.Round(point2.Y), false, false);
+                    }
+                }
+                    
+            }
+            }
+
+        }
         private void StickOnWall()
         {
             Vector speed = new Vector(xVel, yVel);
@@ -1837,179 +1859,183 @@ namespace StickySlimeBall
 
 
         }
-            private void UpdatePlayerAndBall()
-            {
-                double ballX = xPos + ballSize;
-                double ballY = yPos + ballSize;
-                for (int i = 0; i < bCollides.Count; i++)
-                {
-                    BallCollide b = bCollides[i];
-                    double ballX2 = b.xPos + b.ballSize;
-                    double ballY2 = b.yPos + b.ballSize;
-                    double dis = Distance(ballX, ballY, ballX2, ballY2);
-                    if (dis < ballSize + b.ballSize && b.touchCount < 2 && touching == true)
-                    {
-                        Vector toPos = new Vector(ballX2 - ballX, ballY2 - ballY);
-                        toPos.Normalize();
-                        toPos.X = toPos.X * (ballSize + b.ballSize);
-                        toPos.Y = toPos.Y * (ballSize + b.ballSize);
-                        ballX2 = ballX + toPos.X;
-                        ballY2 = ballY + toPos.Y;
-                        b.xPos = ballX2 - b.ballSize;
-                        b.yPos = ballY2 - b.ballSize;
-                        b.xVel = xVel;
-                        b.yVel = yVel;
-                    }
-                    else if (dis < ballSize + b.ballSize)
-                    {
-                        Vector toPos = new Vector(ballX2 - ballX, ballY2 - ballY);
-                        toPos.Normalize();
-                        yVel = yVel * -1;
-                        double dot = (xVel * toPos.X + (yVel) * toPos.Y);
-                        xVel = xVel - (2 * (dot * toPos.X));
-                        yVel = yVel - (2 * (dot * toPos.Y));
-                        yVel = yVel * -0.7;
-                        xVel = xVel * 0.7;
-
-                        toPos.X = toPos.X * (ballSize + b.ballSize + 1);
-                        toPos.Y = toPos.Y * (ballSize + b.ballSize + 1);
-                        ballX = ballX2 - toPos.X;
-                        ballY = ballY2 - toPos.Y;
-                        xPos = ballX - ballSize;
-                        yPos = ballY - ballSize;
-                        b.health = b.health - 40;
-
-                    }
-                }
-            }
-            private void UpdateInfo()
-            {
+        private void UpdatePlayerAndBall()
+        {
             double ballX = xPos + ballSize;
             double ballY = yPos + ballSize;
-            for (int i = 0; i < Information.Count(); i ++)
+            for (int i = 0; i < bCollides.Count; i++)
             {
-
-                 InfoText text = Information[i];
-                 double dis = Math.Sqrt((ballX - text.xPos) * (ballX - text.xPos) + (ballY - text.yPos) * (ballY - text.yPos));
-                 if(dis < text.dis)
-                 {
-                    dis = dis / 1;
-                    text.textInfo.Opacity = 1 - (dis / text.dis);
-                    Vector moveFrom = new Vector(text.xPos - text.slideFromX, text.yPos - text.slideFromY);
-                    moveFrom.X = moveFrom.X * (1 - dis / text.dis);
-                    moveFrom.Y = moveFrom.Y * (1 - dis / text.dis);
-                    Vector p1 = new Vector((text.slideFromX + moveFrom.X), (text.slideFromY + moveFrom.Y));
-                    p1 = RotatePoint(p1, new Vector(ballX, ballY), camRotate);
-
-                    double x1 = ((p1.X - (text.xSize / 2)) * zoom + (cameraX * zoom)) + MyCanvas.ActualWidth / 2;
-                    double y1 = ((p1.Y - (text.ySize / 2)) * zoom + (cameraY * zoom)) + MyCanvas.ActualHeight / 2;
-                    Canvas.SetLeft(text.textInfo, x1);
-                    Canvas.SetTop(text.textInfo, y1);
-                }
-                 else
+                BallCollide b = bCollides[i];
+                double ballX2 = b.xPos + b.ballSize;
+                double ballY2 = b.yPos + b.ballSize;
+                double dis = Distance(ballX, ballY, ballX2, ballY2);
+                if (dis < ballSize + b.ballSize && b.touchCount < 2 && touching == true)
                 {
-                    text.textInfo.Opacity = 0;
+                    Vector toPos = new Vector(ballX2 - ballX, ballY2 - ballY);
+                    toPos.Normalize();
+                    toPos.X = toPos.X * (ballSize + b.ballSize);
+                    toPos.Y = toPos.Y * (ballSize + b.ballSize);
+                    ballX2 = ballX + toPos.X;
+                    ballY2 = ballY + toPos.Y;
+                    b.xPos = ballX2 - b.ballSize;
+                    b.yPos = ballY2 - b.ballSize;
+                    b.xVel = xVel;
+                    b.yVel = yVel;
+                }
+                else if (dis < ballSize + b.ballSize)
+                {
+                    Vector toPos = new Vector(ballX2 - ballX, ballY2 - ballY);
+                    toPos.Normalize();
+                    yVel = yVel * -1;
+                    double dot = (xVel * toPos.X + (yVel) * toPos.Y);
+                    xVel = xVel - (2 * (dot * toPos.X));
+                    yVel = yVel - (2 * (dot * toPos.Y));
+                    yVel = yVel * -0.7;
+                    xVel = xVel * 0.7;
+
+                    toPos.X = toPos.X * (ballSize + b.ballSize + 1);
+                    toPos.Y = toPos.Y * (ballSize + b.ballSize + 1);
+                    ballX = ballX2 - toPos.X;
+                    ballY = ballY2 - toPos.Y;
+                    xPos = ballX - ballSize;
+                    yPos = ballY - ballSize;
+                    b.health = b.health - 40;
+
                 }
             }
-            }
-            private void UpdatePlatforms()
-            {
-                for (int i = 0; i < movingPlatforms.Count; i++)
+        }
+        private void UpdateInfo()
+        {
+        double ballX = xPos + ballSize;
+        double ballY = yPos + ballSize;
+        for (int i = 0; i < Information.Count(); i ++)
+        {
+
+                InfoText text = Information[i];
+                //get the distance of the ball to the text position, but don't sqrt because that causes a lot of processing
+                double dis = ((ballX - text.xPos) * (ballX - text.xPos) + (ballY - text.yPos) * (ballY - text.yPos));
+                if(dis < text.dis * text.dis)
                 {
-                    Platform p = movingPlatforms[i];
-                    if (p.wait < 1)
+                //if ball is close enough it will sqrt and then calculate the transition state, consisting of
+                dis = Math.Sqrt(dis);
+                //opacity
+                text.textInfo.Opacity = 1 - (dis / text.dis);
+                //transition position with rotation
+                Vector moveFrom = new Vector(text.xPos - text.slideFromX, text.yPos - text.slideFromY);
+                moveFrom.X = moveFrom.X * (1 - dis / text.dis);
+                moveFrom.Y = moveFrom.Y * (1 - dis / text.dis);
+                Vector p1 = new Vector((text.slideFromX + moveFrom.X), (text.slideFromY + moveFrom.Y));
+                p1 = RotatePoint(p1, new Vector(ballX, ballY), camRotate);
+
+                double x1 = ((p1.X - (text.xSize / 2)) * zoom + (cameraX * zoom)) + MyCanvas.ActualWidth / 2;
+                double y1 = ((p1.Y - (text.ySize / 2)) * zoom + (cameraY * zoom)) + MyCanvas.ActualHeight / 2;
+                Canvas.SetLeft(text.textInfo, x1);
+                Canvas.SetTop(text.textInfo, y1);
+            }
+                else
+            {
+                text.textInfo.Opacity = 0;
+            }
+        }
+            }
+        private void UpdatePlatforms()
+        {
+            for (int i = 0; i < movingPlatforms.Count; i++)
+            {
+                Platform p = movingPlatforms[i];
+                if (p.wait < 1)
+                {
+                    if (p.movingTo1)
                     {
-                        if (p.movingTo1)
+                        double dis = Distance(p.position.X, p.position.Y, p.movePoint1X, p.movePoint1Y);
+                        if (dis < p.lastDis)
                         {
-                            double dis = Distance(p.position.X, p.position.Y, p.movePoint1X, p.movePoint1Y);
-                            if (dis < p.lastDis)
-                            {
-                                p.lastDis = (float)dis;
-                            }
-                            else
-                            {
-                                p.movingTo1 = true;
-                                Vector newVel = new Vector(p.position.X - p.movePoint1X, p.position.Y - p.movePoint1Y);
-                                newVel.Normalize();
-                                newVel.X = newVel.X * -p.moveSpeed;
-                                newVel.Y = newVel.Y * -p.moveSpeed;
-                                p.vel = newVel;
-                                p.wait = p.waitTime;
-                            }
-                            if (dis < 10)
-                            {
-                                p.lastDis = 10000;
-                                p.movingTo1 = false;
-                                Vector newVel = new Vector(p.position.X - p.movePoint2X, p.position.Y - p.movePoint2Y);
-                                newVel.Normalize();
-                                newVel.X = newVel.X * -p.moveSpeed;
-                                newVel.Y = newVel.Y * -p.moveSpeed;
-                                p.vel = newVel;
-                                p.wait = p.waitTime;
-                            }
+                            p.lastDis = (float)dis;
                         }
                         else
                         {
-                            double dis = Distance(p.position.X, p.position.Y, p.movePoint2X, p.movePoint2Y);
-                            if (dis < p.lastDis)
-                            {
-                                p.lastDis = (float)dis;
-                            }
-                            else
-                            {
-                                p.movingTo1 = false;
-                                Vector newVel = new Vector(p.position.X - p.movePoint2X, p.position.Y - p.movePoint2Y);
-                                newVel.Normalize();
-                                newVel.X = newVel.X * -p.moveSpeed;
-                                newVel.Y = newVel.Y * -p.moveSpeed;
-                                p.vel = newVel;
-                                p.wait = p.waitTime;
-                            }
-                            if (dis < 10)
-                            {
-                                p.lastDis = 10000;
-                                p.movingTo1 = true;
-                                Vector newVel = new Vector(p.position.X - p.movePoint1X, p.position.Y - p.movePoint1Y);
-                                newVel.Normalize();
-                                newVel.X = newVel.X * -p.moveSpeed;
-                                newVel.Y = newVel.Y * -p.moveSpeed;
-                                p.vel = newVel;
-                                p.wait = p.waitTime;
-                            }
+                            p.movingTo1 = true;
+                            Vector newVel = new Vector(p.position.X - p.movePoint1X, p.position.Y - p.movePoint1Y);
+                            newVel.Normalize();
+                            newVel.X = newVel.X * -p.moveSpeed;
+                            newVel.Y = newVel.Y * -p.moveSpeed;
+                            p.vel = newVel;
+                            p.wait = p.waitTime;
                         }
-                        p.position.X = p.position.X + p.vel.X;
-                        p.position.Y = p.position.Y + p.vel.Y;
+                        if (dis < 10)
+                        {
+                            p.lastDis = 10000;
+                            p.movingTo1 = false;
+                            Vector newVel = new Vector(p.position.X - p.movePoint2X, p.position.Y - p.movePoint2Y);
+                            newVel.Normalize();
+                            newVel.X = newVel.X * -p.moveSpeed;
+                            newVel.Y = newVel.Y * -p.moveSpeed;
+                            p.vel = newVel;
+                            p.wait = p.waitTime;
+                        }
                     }
                     else
                     {
-                        p.wait--;
+                        double dis = Distance(p.position.X, p.position.Y, p.movePoint2X, p.movePoint2Y);
+                        if (dis < p.lastDis)
+                        {
+                            p.lastDis = (float)dis;
+                        }
+                        else
+                        {
+                            p.movingTo1 = false;
+                            Vector newVel = new Vector(p.position.X - p.movePoint2X, p.position.Y - p.movePoint2Y);
+                            newVel.Normalize();
+                            newVel.X = newVel.X * -p.moveSpeed;
+                            newVel.Y = newVel.Y * -p.moveSpeed;
+                            p.vel = newVel;
+                            p.wait = p.waitTime;
+                        }
+                        if (dis < 10)
+                        {
+                            p.lastDis = 10000;
+                            p.movingTo1 = true;
+                            Vector newVel = new Vector(p.position.X - p.movePoint1X, p.position.Y - p.movePoint1Y);
+                            newVel.Normalize();
+                            newVel.X = newVel.X * -p.moveSpeed;
+                            newVel.Y = newVel.Y * -p.moveSpeed;
+                            p.vel = newVel;
+                            p.wait = p.waitTime;
+                        }
                     }
-
-                    CollideLine c = collides[p.index1];
-                    c.x2 = (float)p.position.X - (float)p.platformSize.X;
-                    c.y2 = (float)p.position.Y - (float)p.platformSize.Y;
-                    c.x1 = (float)p.position.X - (float)p.platformSize.X;
-                    c.y1 = (float)p.position.Y + (float)p.platformSize.Y;
-
-                    CollideLine c2 = collides[p.index2];
-                    c2.x2 = (float)p.position.X - (float)p.platformSize.X;
-                    c2.y2 = (float)p.position.Y + (float)p.platformSize.Y;
-                    c2.x1 = (float)p.position.X + (float)p.platformSize.X;
-                    c2.y1 = (float)p.position.Y + (float)p.platformSize.Y;
-
-                    CollideLine c3 = collides[p.index3];
-                    c3.x1 = (float)p.position.X + (float)p.platformSize.X;
-                    c3.y1 = (float)p.position.Y + (float)p.platformSize.Y;
-                    c3.x2 = (float)p.position.X + (float)p.platformSize.X;
-                    c3.y2 = (float)p.position.Y - (float)p.platformSize.Y;
-
-                    CollideLine c4 = collides[p.index4];
-                    c4.x1 = (float)p.position.X + (float)p.platformSize.X;
-                    c4.y1 = (float)p.position.Y - (float)p.platformSize.Y;
-                    c4.x2 = (float)p.position.X - (float)p.platformSize.X;
-                    c4.y2 = (float)p.position.Y - (float)p.platformSize.Y;
+                    p.position.X = p.position.X + p.vel.X;
+                    p.position.Y = p.position.Y + p.vel.Y;
                 }
+                else
+                {
+                    p.wait--;
+                }
+
+                CollideLine c = collides[p.index1];
+                c.x2 = (float)p.position.X - (float)p.platformSize.X;
+                c.y2 = (float)p.position.Y - (float)p.platformSize.Y;
+                c.x1 = (float)p.position.X - (float)p.platformSize.X;
+                c.y1 = (float)p.position.Y + (float)p.platformSize.Y;
+
+                CollideLine c2 = collides[p.index2];
+                c2.x2 = (float)p.position.X - (float)p.platformSize.X;
+                c2.y2 = (float)p.position.Y + (float)p.platformSize.Y;
+                c2.x1 = (float)p.position.X + (float)p.platformSize.X;
+                c2.y1 = (float)p.position.Y + (float)p.platformSize.Y;
+
+                CollideLine c3 = collides[p.index3];
+                c3.x1 = (float)p.position.X + (float)p.platformSize.X;
+                c3.y1 = (float)p.position.Y + (float)p.platformSize.Y;
+                c3.x2 = (float)p.position.X + (float)p.platformSize.X;
+                c3.y2 = (float)p.position.Y - (float)p.platformSize.Y;
+
+                CollideLine c4 = collides[p.index4];
+                c4.x1 = (float)p.position.X + (float)p.platformSize.X;
+                c4.y1 = (float)p.position.Y - (float)p.platformSize.Y;
+                c4.x2 = (float)p.position.X - (float)p.platformSize.X;
+                c4.y2 = (float)p.position.Y - (float)p.platformSize.Y;
             }
+        }
         private Vector RotatePoint(Vector point, Vector center, double angle)
         {
             angle = toRadians(angle);
@@ -2019,7 +2045,7 @@ namespace StickySlimeBall
             double s = Math.Sin(angle);
             double c = Math.Cos(angle);
 
-            // translate point back to origin:
+            // translate point back to origin
             p1.X = p1.X - cx;
             p1.Y = p1.Y - cy;
 
@@ -2027,14 +2053,14 @@ namespace StickySlimeBall
             double xnew = p1.X * c - p1.Y * s;
             double ynew = p1.X * s + p1.Y * c;
 
-            // translate point back:
+            // translate point back
             p1.X = xnew + cx;
             p1.Y = ynew + cy;
             return p1;
             
         }
-            private CollideLine UpdateSwitch(CollideLine c)
-            {
+        private CollideLine UpdateSwitch(CollideLine c)
+        {
             double ballX = xPos + ballSize;
             double ballY = yPos + ballSize;
             if (c.MoreData[1] == 0)
@@ -2122,30 +2148,31 @@ namespace StickySlimeBall
             }
             return c;
         }
-            private bool GoThroughLines(bool foundWall, bool set, bool update)
-            {
-                //TODO test if ball's velocity is toward the normal
-                double ballX = xPos + ballSize;
-                double ballY = yPos + ballSize;
-                bool hit = false;
-                double biggestDot = ballSize;
+        private bool GoThroughLines(bool foundWall, bool set, bool update)
+        {
+            double ballX = xPos + ballSize;
+            double ballY = yPos + ballSize;
+            bool hit = false;
+            double biggestDot = ballSize;
+            
             for (int i = 0; i < collides.Count; i++)
             {
                 CollideLine c = collides[i];
-                //Canvas.SetLeft(c.lineShape,Window.Width);
-                //Canvas.SetTop(c.lineShape, cameraY);
                 float addedVelX = 0;
                 float addedVelY = 0;
+                //gravity surface
                 if(c.type == 7)
                 {
                     c.lineShape.Stroke = Brushes.DarkBlue;
                     c.lineShape.StrokeThickness = 5;
                     if(touching && touchingIndex == i)
                     {
+                        //if we are colliding with the ball we will set the gravity to the normal of the surface
                         gravity.X = c.normal.X * c.MoreData[0];
                         gravity.Y = -c.normal.Y * c.MoreData[0];
                     }
                 }
+
                 if(c.type == 5)
                 {
                     if(update == false)
@@ -2222,7 +2249,6 @@ namespace StickySlimeBall
 
 
                             vec = new Vector(c.MoreData[3] - c.MoreData[7], c.MoreData[4] - c.MoreData[8]);
-                            //vec.Normalize();
                             vec.X = vec.X / c.MoreData[0];
                             vec.Y = vec.Y / c.MoreData[0];
                             if (update == false)
@@ -2888,6 +2914,7 @@ namespace StickySlimeBall
                     collides[c.index2Refrence] = c3;
 
                 }
+                //check the collisions of the ball and the lines
                 addedVelX = addedVelX * 1;
                 addedVelY = addedVelY * 1;
                 if(c.type == 2)
@@ -2898,134 +2925,135 @@ namespace StickySlimeBall
                 Vector v = new Vector(c.x1 - ballX, c.y1 - ballY);
                 double dot2 = (v.X * c.normal.X + v.Y * c.normal.Y);
                 if ((dotVel > 0))// || (c.isMovingPlatform  && touchingIndex != i))
+                {
+                    Vector v1 = new Vector(c.x1 - c.x2, c.y1 - c.y2);
+                    Vector vel = new Vector(c.normal.X, c.normal.Y);
+                    double perp1 = PerpVec(v1, vel);
+                    double perp2 = PerpVec(v, vel);
+
+                    double length = (perp2 / perp1) * v1.Length;
+                    double v1Length = v1.Length;
+                    v1.Normalize();
+                    v1.X = v1.X * length;
+                    v1.Y = v1.Y * length;
+                    Vector collisionPoint = new Vector(c.x1 - v1.X, c.y1 - v1.Y);
+                    bool canCollide = true;
+                    int maxLength = 10;
+                    if(c.type == 3)
                     {
-                        Vector v1 = new Vector(c.x1 - c.x2, c.y1 - c.y2);
-                        Vector vel = new Vector(c.normal.X, c.normal.Y);
-                        double perp1 = PerpVec(v1, vel);
-                        double perp2 = PerpVec(v, vel);
-
-                        double length = (perp2 / perp1) * v1.Length;
-                        double v1Length = v1.Length;
-                        v1.Normalize();
-                        v1.X = v1.X * length;
-                        v1.Y = v1.Y * length;
-                        Vector collisionPoint = new Vector(c.x1 - v1.X, c.y1 - v1.Y);
-                        bool canCollide = true;
-                        int maxLength = 10;
-                        if(c.type == 3)
-                        {
                         maxLength = 0;
-                        }
+                    }
 
-                        if (length < -maxLength)
-                        {
-                            collisionPoint.X = c.x1;
-                            collisionPoint.Y = c.y1;
-                            canCollide = false;
-                        }
-                        if (length > v1Length + maxLength)
-                        {
-                            collisionPoint.X = c.x2;
-                            collisionPoint.Y = c.y2;
-                            canCollide = false;
-                        }
-                        if (double.IsInfinity(collisionPoint.Y))
-                        {
-                            collisionPoint.Y = ballY;
-                        }
-                        if (double.IsInfinity(collisionPoint.X))
-                        {
-                            collisionPoint.X = ballX;
-                        }
-                        v1 = new Vector(c.x1 - c.x2, c.y1 - c.y2);
-                        v = new Vector(collisionPoint.X - ballX, collisionPoint.Y - ballY);
-                        vel = new Vector(xVel, yVel * -1);
-                        double dot = (v.X * c.normal.X + v.Y * c.normal.Y);
+                    if (length < -maxLength)
+                    {
+                        collisionPoint.X = c.x1;
+                        collisionPoint.Y = c.y1;
+                        canCollide = false;
+                    }
+                    if (length > v1Length + maxLength)
+                    {
+                        collisionPoint.X = c.x2;
+                        collisionPoint.Y = c.y2;
+                        canCollide = false;
+                    }
+                    if (double.IsInfinity(collisionPoint.Y))
+                    {
+                        collisionPoint.Y = ballY;
+                    }
+                    if (double.IsInfinity(collisionPoint.X))
+                    {
+                        collisionPoint.X = ballX;
+                    }
+                    v1 = new Vector(c.x1 - c.x2, c.y1 - c.y2);
+                    v = new Vector(collisionPoint.X - ballX, collisionPoint.Y - ballY);
+                    vel = new Vector(xVel, yVel * -1);
+                    double dot = (v.X * c.normal.X + v.Y * c.normal.Y);
                         
-                        if (dot < biggestDot && canCollide && c.lastDot[0] > biggestDot - 10)
+                    if (dot < biggestDot && canCollide && c.lastDot[0] > biggestDot - 10)
+                    {
+                        if (set)
                         {
-                            if (set)
-                            {
-                                c.lastDot[0] = 0;
-                            }
+                            c.lastDot[0] = 0;
+                        }
 
-                            //  dot = (vel.X * c.normal.X + (vel.Y) * c.normal.Y);
-                            // vel.X = vel.X - (2 * (dot * c.normal.X));
-                            //vel.Y = vel.Y - (2 * (dot * c.normal.Y));
-                            //vel.Y = vel.Y * -1;
-                            //vel.X = vel.X * 0.85;
+                        //  dot = (vel.X * c.normal.X + (vel.Y) * c.normal.Y);
+                        // vel.X = vel.X - (2 * (dot * c.normal.X));
+                        //vel.Y = vel.Y - (2 * (dot * c.normal.Y));
+                        //vel.Y = vel.Y * -1;
+                        //vel.X = vel.X * 0.85;
 
-                            if (0 == 0)
-                            {
-                                touching = true;
-                                lastTouchingTime = maxTouchingCountDown;
-                            vel = new Vector(xVel, yVel);
+                        if (0 == 0)
+                        {
+                            touching = true;
+                            lastTouchingTime = maxTouchingCountDown;
+                        vel = new Vector(xVel, yVel);
 
-                            Vector destinationPoint = new Vector(ballX + vel.X, ballY - vel.Y);
-                            Vector newBasePoint = new Vector(ballX, ballY);
-                            //Vector vec = new Vector(Math.Abs(c.normal.X) * vel.X, Math.Abs(c.normal.Y) * vel.Y);
-                            //vec.X = vec.X / c.MoreData[0];
-                            //vec.Y = vec.Y / c.MoreData[0];
-                            Vector Origin = new Vector(collisionPoint.X, collisionPoint.Y);
-                            Vector slideNormal = new Vector((newBasePoint.X - collisionPoint.X), (newBasePoint.Y - collisionPoint.Y));
-                            slideNormal.Normalize();
+                        Vector destinationPoint = new Vector(ballX + vel.X, ballY - vel.Y);
+                        Vector newBasePoint = new Vector(ballX, ballY);
+                        //Vector vec = new Vector(Math.Abs(c.normal.X) * vel.X, Math.Abs(c.normal.Y) * vel.Y);
+                        //vec.X = vec.X / c.MoreData[0];
+                        //vec.Y = vec.Y / c.MoreData[0];
+                        Vector Origin = new Vector(collisionPoint.X, collisionPoint.Y);
+                        Vector slideNormal = new Vector((newBasePoint.X - collisionPoint.X), (newBasePoint.Y - collisionPoint.Y));
+                        slideNormal.Normalize();
                             
-                            double equation3 = -(slideNormal.X * Origin.X + slideNormal.Y * Origin.Y);
-                            Vector point = new Vector(destinationPoint.X, destinationPoint.Y);
-                            double signedDistance = (point.X * slideNormal.X + point.Y * slideNormal.Y) + equation3;
-                            Vector newDestinationPoint = new Vector(destinationPoint.X - (signedDistance * slideNormal.X), destinationPoint.Y - (signedDistance * slideNormal.Y));
-                            vel.X = (newDestinationPoint.X - collisionPoint.X);
-                            vel.Y = -(newDestinationPoint.Y - collisionPoint.Y);
-                            //double normX = Math.Abs(Math.Round(c.normal.Y));
-                            /**
-                                vel.X = (vel.X * normX) + (normX * c.normal.X * -0.1);
-                                vel.Y = vel.Y * Math.Abs((c.normal.X));
-                                vel.Y = vel.Y * -1;
-    */
-                            if (foundWall == false)
-                                {
-                                    touchingNormal.X = c.normal.X;
-                                    touchingNormal.Y = c.normal.Y;
-                                    foundWall = true;
-                                }
-                                if ((stickingOn == 2 || keyLeft) && c.normal.X < 0 && Math.Abs(c.normal.X) > Math.Abs(c.normal.Y))
-                                {
-                                    touchingNormal.X = c.normal.X;
-                                    touchingNormal.Y = c.normal.Y;
-                                    foundWall = true;
-                                }
-                                if ((stickingOn == 1 || keyRight) && c.normal.X > 0 && Math.Abs(c.normal.X) > Math.Abs(c.normal.Y))
-                                {
-                                    touchingNormal.X = c.normal.X;
-                                    touchingNormal.Y = c.normal.Y;
-                                    foundWall = true;
-                                }
-                                if ((stickingOn == 3 || keyUp) && c.normal.Y < 0 && Math.Abs(c.normal.X) < Math.Abs(c.normal.Y))
-                                {
-                                    touchingNormal.X = c.normal.X;
-                                    touchingNormal.Y = c.normal.Y;
-                                    foundWall = true;
-                                }
-                                if (c.canStick)
-                                {
-                                    canStick = true;
-                                }
-                                else
-                                {
-                                    canStick = false;
-                                }
-                            }
-                            if(c.type == 2)
+                        double equation3 = -(slideNormal.X * Origin.X + slideNormal.Y * Origin.Y);
+                        Vector point = new Vector(destinationPoint.X, destinationPoint.Y);
+                        double signedDistance = (point.X * slideNormal.X + point.Y * slideNormal.Y) + equation3;
+                        Vector newDestinationPoint = new Vector(destinationPoint.X - (signedDistance * slideNormal.X), destinationPoint.Y - (signedDistance * slideNormal.Y));
+                        vel.X = (newDestinationPoint.X - collisionPoint.X);
+                        vel.Y = -(newDestinationPoint.Y - collisionPoint.Y);
+                        //double normX = Math.Abs(Math.Round(c.normal.Y));
+                        /**
+                            vel.X = (vel.X * normX) + (normX * c.normal.X * -0.1);
+                            vel.Y = vel.Y * Math.Abs((c.normal.X));
+                            vel.Y = vel.Y * -1;
+*/
+                        if (foundWall == false)
                             {
-                                c.MoreData[0] = 1;
+                                touchingNormal.X = c.normal.X;
+                                touchingNormal.Y = c.normal.Y;
+                                foundWall = true;
                             }
-                            touchingIndex = i;
-                            //xPos = (collisionPoint.X - (ballSize) - c.normal.X * ballSize);
-                            //yPos = (collisionPoint.Y - (ballSize) - c.normal.Y * ballSize);
-                            //ballX = xPos + ballSize;
-                            //ballY = yPos + ballSize;
-                            Canvas.SetLeft(Ball, (xPos + cameraX) + MyCanvas.ActualWidth / 2);
-                            Canvas.SetTop(Ball, (yPos + cameraY) + MyCanvas.ActualHeight / 2);
+                            if ((stickingOn == 2 || keyLeft) && c.normal.X < 0 && Math.Abs(c.normal.X) > Math.Abs(c.normal.Y))
+                            {
+                                touchingNormal.X = c.normal.X;
+                                touchingNormal.Y = c.normal.Y;
+                                foundWall = true;
+                            }
+                            if ((stickingOn == 1 || keyRight) && c.normal.X > 0 && Math.Abs(c.normal.X) > Math.Abs(c.normal.Y))
+                            {
+                                touchingNormal.X = c.normal.X;
+                                touchingNormal.Y = c.normal.Y;
+                                foundWall = true;
+                            }
+                            if ((stickingOn == 3 || keyUp) && c.normal.Y < 0 && Math.Abs(c.normal.X) < Math.Abs(c.normal.Y))
+                            {
+                                touchingNormal.X = c.normal.X;
+                                touchingNormal.Y = c.normal.Y;
+                                foundWall = true;
+                            }
+                            if (c.canStick)
+                            {
+                                canStick = true;
+                            }
+                            else
+                            {
+                                canStick = false;
+                            }
+                        }
+                        if(c.type == 2)
+                        {
+                            c.MoreData[0] = 1;
+                        }
+                        touchingIndex = i;
+                        //move the position of the ball back to where it should be
+                        xPos = (collisionPoint.X - (ballSize) - c.normal.X * ballSize);
+                        yPos = (collisionPoint.Y - (ballSize) - c.normal.Y * ballSize);
+                        ballX = xPos + ballSize;
+                        ballY = yPos + ballSize;
+                        Canvas.SetLeft(Ball, (xPos + cameraX) + MyCanvas.ActualWidth / 2);
+                        Canvas.SetTop(Ball, (yPos + cameraY) + MyCanvas.ActualHeight / 2);
 
                         if (c.type != 4 || c.MoreData[12] == 1)
                         {
@@ -3102,17 +3130,7 @@ namespace StickySlimeBall
                                 }
                             }
                         }
-
-                            //i = collides.Count + 1;
-
-                        }
-                        else
-                        {
-                            if (set)
-                            {
-                                c.lastDot[0] = dot2;
-                            }
-                        }
+                        //i = collides.Count + 1;
                     }
                     else
                     {
@@ -3121,19 +3139,18 @@ namespace StickySlimeBall
                             c.lastDot[0] = dot2;
                         }
                     }
-
-                    //textBlock.Text = "" + collisionPoint.X + " " + collisionPoint.Y;
-                    // velocity - (2 (dot * norm))
-
-
-
-
                 }
-
-                return hit;
+                else
+                {
+                    if (set)
+                    {
+                        c.lastDot[0] = dot2;
+                    }
+                }
             }
-        int lastSecond = 0;
-        int lastMinute = 0;
+            return hit;
+        }
+        
         private Vector response(Vector vel, Vector position, Vector collisionPoint)
         {
             double ballX = position.X;
@@ -3182,13 +3199,7 @@ namespace StickySlimeBall
             }
 
         }
-            private double PerpVec(Vector v1, Vector v2)
-            {
-                Vector tmp1 = new Vector(v1.X, v1.Y);
-                Vector tmp2 = new Vector(-v2.Y, v2.X);
-                tmp2.Normalize();
-                return (tmp1.X * tmp2.X + tmp1.Y * tmp2.Y);
-            }
+        
         private void Timer_Tick(object sender, EventArgs e)
         {
 
@@ -3888,53 +3899,54 @@ namespace StickySlimeBall
         }
 
 
-
-            private void Window_KeyDown(object sender, KeyEventArgs e)
+        //Key Inputs
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Up || e.Key == Key.W)
             {
-                if (e.Key == Key.Up || e.Key == Key.W)
-                {
-                    keyUp = true;
+                keyUp = true;
                     
-                }
-                if (e.Key == Key.Down || e.Key == Key.S)
-                {
-                    keyDown = true;
-                }
-                if (e.Key == Key.Right || e.Key == Key.D)
-                {
-                    keyRight = true;
-                }
-                if (e.Key == Key.Left || e.Key == Key.A)
-                {
-                    keyLeft = true;
-                }
+            }
+            if (e.Key == Key.Down || e.Key == Key.S)
+            {
+                keyDown = true;
+            }
+            if (e.Key == Key.Right || e.Key == Key.D)
+            {
+                keyRight = true;
+            }
+            if (e.Key == Key.Left || e.Key == Key.A)
+            {
+                keyLeft = true;
+            }
                 
 
-            }
-
-            private void Window_KeyUp(object sender, KeyEventArgs e)
-            {
-                if (e.Key == Key.Up || e.Key == Key.W)
-                {
-                    keyUp = false;
-                }
-                if (e.Key == Key.Down || e.Key == Key.S)
-                {
-                    keyDown = false;
-                }
-                if (e.Key == Key.Right || e.Key == Key.D)
-                {
-                    keyRight = false;
-                }
-                if (e.Key == Key.Left || e.Key == Key.A)
-                {
-                    keyLeft = false;
-                }
-                if(e.Key == Key.R && died == 0)
-                {
-                    died = 150;
-                }
         }
+        private void Window_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Up || e.Key == Key.W)
+            {
+                keyUp = false;
+            }
+            if (e.Key == Key.Down || e.Key == Key.S)
+            {
+                keyDown = false;
+            }
+            if (e.Key == Key.Right || e.Key == Key.D)
+            {
+                keyRight = false;
+            }
+            if (e.Key == Key.Left || e.Key == Key.A)
+            {
+                keyLeft = false;
+            }
+            if(e.Key == Key.R && died == 0)
+            {
+                died = 150;
+            }
+        }
+
+
         private void NextLevel()
         {
             DateTime now = DateTime.Now;
@@ -4015,6 +4027,6 @@ namespace StickySlimeBall
             }
         }
     }
-    }
+}
 
 
