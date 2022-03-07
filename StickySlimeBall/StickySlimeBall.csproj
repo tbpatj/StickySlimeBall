@@ -64,6 +64,8 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="BallCollide.cs" />
+    <Compile Include="Player.cs" />
+    <Compile Include="World.cs" />
     <Compile Include="CollideLine.cs" />
     <Compile Include="InfoText.cs" />
     <Compile Include="MainWindow.xaml.cs">
