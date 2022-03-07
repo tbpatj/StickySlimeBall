@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
@@ -25,9 +26,6 @@ namespace StickySlimeBall
     /// </summary>
     
     
-        /// <summary>
-        /// Interaction logic for MainWindow.xaml
-        /// </summary>
     public partial class MainWindow : Window
     {
         //objects and lists that store all the items
@@ -49,7 +47,10 @@ namespace StickySlimeBall
         bool friction = true;
         bool canStick = false;
 
+        Player player = new Player();
+
         //player properties
+        /**
         double xPos = 5100;
         double yPos = -4100;
         double yVel = 0;
@@ -74,6 +75,7 @@ namespace StickySlimeBall
         int stickingOn = 1;
         int liftedUpSinceTouched = 0;
         int lastTouchingTime = 0;
+        */
 
         //camera properties
         double cameraX = 0;
@@ -83,7 +85,7 @@ namespace StickySlimeBall
         float rotateTo = 0;
         bool lockCam = true;
         float CamDis = 0;
-        double lastSafeCamRotate = 0;
+        
 
         // gameplay/gameflow
         int finalSwitch = 0;
@@ -176,47 +178,60 @@ namespace StickySlimeBall
             addedMinute = now.Minute;
             startTime = now;
             //set the player to not touching anything
-            touchingIndex = -1;
+            player.touchingIndex = -1;
             //lock the camera to the player
             lockCam = true;
             if (levelNum == 1)
             {
-                //reset player positions and world properties
-                xPos = 0;
-                yPos = 0;
+                //reset the player position and speed, and boost
+                player.xPos = 0;
+                player.yPos = 0;
+                player.xVel = 0;
+                player.yVel = 0;
+                player.maxBoost = 300;
+                player.stickyBoost = player.maxBoost;
+
+                //reset the camera position and properties
                 cameraX = 0;
                 cameraY = 0;
                 camRotate = 0;
                 rotateTo = 0;
+
+                //reset the world properties
                 gravity.X = 0;
                 gravity.Y = -0.1;
-                xVel = 0;
-                yVel = 0;
-                maxBoost = 300;
-                stickyBoost = maxBoost;
-                Canvas.SetLeft(Ball, (xPos * zoom + (cameraX * zoom)) + MyCanvas.ActualWidth / 2);
-                Canvas.SetTop(Ball, (yPos * zoom + (cameraY * zoom)) + MyCanvas.ActualHeight / 2);
                 //load up all the level resources, such as the lines
                 CreateLevel1();
                 //set up the normals
                 GoThroughLines(false, true, true);
+
+                //set the render for the player according to the location and elements
+                Canvas.SetLeft(Ball, (player.xPos * zoom + (cameraX * zoom)) + MyCanvas.ActualWidth / 2);
+                Canvas.SetTop(Ball, (player.yPos * zoom + (cameraY * zoom)) + MyCanvas.ActualHeight / 2);
             }
             else if(levelNum == 2)
             {
-                xPos = -1180;
+                //set player location and speed and boost
+                player.xPos = -1180;
+                player.yPos = 2750;
+                player.xVel = 0;
+                player.yVel = 0;
+                player.maxBoost = 300;
+                player.stickyBoost = player.maxBoost;
+
+                //set the camera location
                 cameraX = 1100;
                 cameraY = -2740;
                 camRotate = 0;
-                yPos = 2750;
-                
-                xVel = 0;
-                yVel = 0;
-                Canvas.SetLeft(Ball, (xPos * zoom + (cameraX * zoom)) + MyCanvas.ActualWidth / 2);
-                Canvas.SetTop(Ball, (yPos * zoom + (cameraY * zoom)) + MyCanvas.ActualHeight / 2);
-                maxBoost = 300;
-                stickyBoost = maxBoost;
+
+                //set up the geometry and world collisions
                 SetUpLines();
+                //set up the normals
                 GoThroughLines(false, true, true);
+
+                //set the render for the player according to the location and elements
+                Canvas.SetLeft(Ball, (player.xPos * zoom + (cameraX * zoom)) + MyCanvas.ActualWidth / 2);
+                Canvas.SetTop(Ball, (player.yPos * zoom + (cameraY * zoom)) + MyCanvas.ActualHeight / 2);
             }
             else if(levelNum == 3)
             {
@@ -225,8 +240,8 @@ namespace StickySlimeBall
         }
         private void createlevel3()
         {
-            xPos = 0;
-            yPos = 0;
+            player.xPos = 0;
+            player.yPos = 0;
             level = 3;
             CreateLine(-1000, 200, 1000, 200, true, true);
             CreateLine(300, 200, 300, 0, true, true);
@@ -1444,104 +1459,128 @@ namespace StickySlimeBall
             }
 
         }
+
+
+        //big input function, takes user input and moves him according to the walls and such he is touching, or not touching
         private void StickOnWall()
         {
-            Vector speed = new Vector(xVel, yVel);
+
+            //get a vector for the velocity of the player
+            Vector speed = new Vector(player.xVel, player.yVel);
             if (speed.Length > 13)
             {
+                //normalize the speed vector if we are going so fast
                 speed.Normalize();
-                //xVel = speed.X * 13;
-                //yVel = speed.Y * 13;
             }
-            if (touchingIndex == -1)
+            //if we aren't touching a surface than we will reset the moving platform velocities
+            if (player.touchingIndex == -1)
             {
-               
-                if (movingPlatformTouch != -1)
+               //if the player isn't touching a moving platform we will set the additional moving velocity to zero because they aren't on a moving platform
+                if (player.movingPlatformTouch != -1)
                 {
-                    addedXVel = 0;
-                    addedYVel = 0;
+                    player.addedXVel = 0;
+                    player.addedYVel = 0;
                 }
-                movingPlatformTouch = -1;
+                player.movingPlatformTouch = -1;
             }
-            if (touchingIndex != -1)
+            //if we are touching a surface we need to do some calculations
+            if (player.touchingIndex != -1)
             {
-                CollideLine c = collides[touchingIndex];
-                double ballX = xPos + ballSize;
-                double ballY = yPos + ballSize;
+                CollideLine c = collides[player.touchingIndex];
+                double ballX = player.xPos + player.ballSize;
+                double ballY = player.yPos + player.ballSize;
                 Vector cSize = new Vector(c.x1 - c.x2, c.y1 - c.y2);
                 Vector cDis1 = new Vector(c.x1 - ballX, c.y1 - ballY);
                 Vector cDis2 = new Vector(ballX - c.x2, ballY - c.y2);
-                if ((c.type == 0 || c.type == 7) && touching && cSize.Length > 11 && cDis1.Length > 75 && cDis2.Length > 75)
+                if ((c.type == 0 || c.type == 7) && player.touching && cSize.Length > 11 && cDis1.Length > 75 && cDis2.Length > 75)
                 {
+                    //if gravity isn't zero g then we don't want to set the last spawn point to a normal surface
                     if (gravity.X != 0 || gravity.Y != 0)
                     {
+                        //set up the last safe gravity field spawn spot
                         Vector gravityN = new Vector(gravity.X, -gravity.Y);
                         gravityN.Normalize();
                         double dot = (gravityN.X * c.normal.X + gravityN.Y * c.normal.Y);
                         if(dot > 0.6)
                         {
-                            lastSafeXPos = xPos;
-                            lastSafeYPos = yPos;
-                            lastSafeGravity.X = gravity.X;
-                            lastSafeGravity.Y = gravity.Y;
-                            lastSafeCamRotate = camRotate;
-                            lastSafeTouchingNormal = touchingNormal;
-                            lastSafeTouchingIndex = touchingIndex;
+                            player.lastSafeXPos = player.xPos;
+                            player.lastSafeYPos = player.yPos;
+                            player.lastSafeGravity.X = gravity.X;
+                            player.lastSafeGravity.Y = gravity.Y;
+                            player.lastSafeCamRotate = camRotate;
+                            player.lastSafeTouchingNormal = player.touchingNormal;
+                            player.lastSafeTouchingIndex = player.touchingIndex;
                         }
                     }
+                    //if we can stick to the surface it is a good surface in pretty much all cases, in this case all cases for respawning to
                     else if(c.canStick)
                     {
-                        lastSafeXPos = xPos;
-                        lastSafeYPos = yPos;
-                        lastSafeGravity.X = gravity.X;
-                        lastSafeGravity.Y = gravity.Y;
-                        lastSafeCamRotate = camRotate;
-                        lastSafeTouchingNormal = touchingNormal;
-                        lastSafeTouchingIndex = touchingIndex;
+                        player.lastSafeXPos = player.xPos;
+                        player.lastSafeYPos = player.yPos;
+                        player.lastSafeGravity.X = gravity.X;
+                        player.lastSafeGravity.Y = gravity.Y;
+                        player.lastSafeCamRotate = camRotate;
+                        player.lastSafeTouchingNormal = player.touchingNormal;
+                        player.lastSafeTouchingIndex = player.touchingIndex;
                     }
                 }
+                //if the line we are touching is a moving platform
                 if (c.isMovingPlatform)
                 {
 
                     Platform p = movingPlatforms[c.platformIndex];
-                    if (movingPlatformTouch == -1)
+                    //if the player isn't set to touching a moving platform then make it set to touching one
+                    if (player.movingPlatformTouch == -1)
                     {
-                        movingPlatformTouch = c.platformIndex;
+                        player.movingPlatformTouch = c.platformIndex;
 
                     }
-                    xVel = xVel - p.vel.X;
-                    yVel = yVel - p.vel.Y;
-                    xVel = xVel + p.vel.X;
-                    yVel = yVel + p.vel.Y;
+                    
+
+
+
+
+
+                    //TODO I think this is actually useless and can be omitted, just double check
+                    player.xVel = player.xVel - p.vel.X;
+                    player.yVel = player.yVel - p.vel.Y;
+                    player.xVel = player.xVel + p.vel.X;
+                    player.yVel = player.yVel + p.vel.Y;
+                    //if the platform is moving then set the players added vel to something moving
                     if (p.wait < 1)
                     {
-                        addedXVel = p.vel.X;
-                        addedYVel = p.vel.Y;
+                        player.addedXVel = p.vel.X;
+                        player.addedYVel = p.vel.Y;
                     }
+                    //if the platform isn't moving then set the added velocity to nothing
                     else
                     {
-                        if (addedXVel != 0 || addedYVel != 0)
+                        if (player.addedXVel != 0 || player.addedYVel != 0)
                         {
-                            xVel = xVel + addedXVel;
-                            yVel = yVel - addedYVel;
-                            addedXVel = 0;
-                            addedYVel = 0;
+                            player.xVel = player.xVel + player.addedXVel;
+                            player.yVel = player.yVel - player.addedYVel;
+                            player.addedXVel = 0;
+                            player.addedYVel = 0;
                         }
                     }
 
 
                 }
                 else
+                //if the platform isn't a moving platform then set the player added velocity to nothing and set that they aren't touching a moving platform
                 {
-                    if (movingPlatformTouch != -1)
+                    if (player.movingPlatformTouch != -1)
                     {
-                        addedXVel = 0;
-                        addedYVel = 0;
+                        player.addedXVel = 0;
+                        player.addedYVel = 0;
 
                     }
-                    movingPlatformTouch = -1;
+                    player.movingPlatformTouch = -1;
                 }
             }
+
+         //update the camera rotation, based on if they are sticking to a wall
+            
             if(camRotate > 180)
             {
                 camRotate = -180 + (camRotate - 180);
@@ -1550,6 +1589,7 @@ namespace StickySlimeBall
             {
                 camRotate = 180 + (camRotate + 180);
             }
+            //do some calculations to figure out if the camera should rotate left or right, its a big chunk of code, due to checking if the direction it needs to rotate is close even if its at -170 and needs to rotate to 180
             if(rotateTo < 0 && 0 < camRotate)
             {
                 double point180 = 180 - (-180 - rotateTo);
@@ -1588,21 +1628,24 @@ namespace StickySlimeBall
                 CamDis = (float)(rotateTo - camRotate);
             }
             
-
-            if (touching && canStick)
+            //if player is touching a sticky surface
+            if (player.touching && canStick)
             {
-                float dir = (float)toDegrees(Math.Acos(touchingNormal.Y));
-                if (touchingNormal.X < 0)
+
+                //set the direction that the camera needs to rotate to
+                float dir = (float)toDegrees(Math.Acos(player.touchingNormal.Y));
+                if (player.touchingNormal.X < 0)
                 {
                     dir = dir * -1;
 
                 }
                 rotateTo = dir;
-                
-                stickyBoost = stickyBoost + 2;
-                if(stickyBoost > maxBoost)
+
+                //give the player some more sticky boost
+                player.stickyBoost = player.stickyBoost + 2;
+                if(player.stickyBoost > player.maxBoost)
                 {
-                    stickyBoost = maxBoost;
+                    player.stickyBoost = player.maxBoost;
                 }
                 attatchedCoolDown = 3;
                 /**
@@ -1635,9 +1678,10 @@ namespace StickySlimeBall
             */
 
             }
-            else if(touching)
-            {
-                //camRotate = ((0 - camRotate) / 20) + camRotate;
+            //if the player is touching a regular surface
+            else if(player.touching)
+            {   
+                //if the gravity isn't zero g then set the direction the camera needs to rotate to
                 if (gravity.X != 0 || gravity.Y != 0)
                 {
                     Vector gravityN = new Vector(gravity.X, -gravity.Y);
@@ -1651,6 +1695,7 @@ namespace StickySlimeBall
                     rotateTo = dir;
                 }
             }
+            //a cooldown for hopping off of a surface
             if (attatchedCoolDown > 0)
             {
                 attatchedCoolDown = attatchedCoolDown - 1;
@@ -1661,51 +1706,58 @@ namespace StickySlimeBall
 
                 if (keyUp == true)
                 {
-                    if (liftedUpSinceTouched == 0)
+                    if (player.liftedUpSinceTouched == 0)
                     {
-                        yVel = yVel + (float)Math.Cos(toRadians(camRotate)) * 0.3;
-                        xVel = xVel - (float)Math.Sin(toRadians(camRotate)) * 0.3;
+                        player.yVel = player.yVel + (float)Math.Cos(toRadians(camRotate)) * 0.3;
+                        player.xVel = player.xVel - (float)Math.Sin(toRadians(camRotate)) * 0.3;
                         attatchedCoolDown = 0;
                     }
                 }
                 else
                 {
-                    float dir = (float)toDegrees(Math.Acos(touchingNormal.Y));
-                    if (touchingNormal.X < 0)
+                    //TODO this little dir part could probably be omitted, test code when ready
+                    float dir = (float)toDegrees(Math.Acos(player.touchingNormal.Y));
+                    if (player.touchingNormal.X < 0)
                     {
                         dir = dir * -1;
 
                     }
                     if (Math.Round(CamDis) < 5)
                     {
-                        liftedUpSinceTouched = 0;
+                        player.liftedUpSinceTouched = 0;
                     }
                 }
+                //move the player based off of input and direction of the camera
                 if (keyRight == true)
                 {
-                    xVel = xVel + (float)Math.Cos(toRadians(camRotate)) * 0.1;
-                    yVel = yVel + (float)Math.Sin(toRadians(camRotate)) * 0.1;
+                    player.xVel = player.xVel + (float)Math.Cos(toRadians(camRotate)) * 0.1;
+                    player.yVel = player.yVel + (float)Math.Sin(toRadians(camRotate)) * 0.1;
                     
                 }
                 else if (keyLeft == true)
                 {
-                    xVel = xVel - (float)Math.Cos(toRadians(camRotate)) * 0.1;
-                    yVel = yVel - (float)Math.Sin(toRadians(camRotate)) * 0.1;
+                    player.xVel = player.xVel - (float)Math.Cos(toRadians(camRotate)) * 0.1;
+                    player.yVel = player.yVel - (float)Math.Sin(toRadians(camRotate)) * 0.1;
                     
                 }
                 else if (friction)
                 {
-                    yVel = yVel * 0.98;
+                    player.yVel = player.yVel * 0.98;
                 }
-                xVel = xVel + (float)Math.Sin(toRadians(rotateTo)) * 0.1;
-                yVel = yVel - (float)Math.Cos(toRadians(rotateTo)) * 0.1;
-                if (stickingOn == 1)
+                player.xVel = player.xVel + (float)Math.Sin(toRadians(rotateTo)) * 0.1;
+                player.yVel = player.yVel - (float)Math.Cos(toRadians(rotateTo)) * 0.1;
+
+
+
+
+                //TODO looks like this could be omitted
+                if (player.stickingOn == 1)
                 {
 
                    // xVel = xVel + 0.1;
                     
                 }
-                else if (stickingOn == 2)
+                else if (player.stickingOn == 2)
                 {
                    // xVel = xVel - 0.1;
                     /**
@@ -1734,7 +1786,7 @@ namespace StickySlimeBall
                     }
                 */
                 }
-                else if (stickingOn == 3)
+                else if (player.stickingOn == 3)
                 {
                    // yVel = yVel + 0.1;
                     /**
@@ -1764,7 +1816,7 @@ namespace StickySlimeBall
                 */
 
                 }
-                else if (stickingOn == 0)
+                else if (player.stickingOn == 0)
                 {
                    // yVel = yVel - 0.1;
                     /**
@@ -1797,61 +1849,63 @@ namespace StickySlimeBall
                     
 
             }
-            else
+            else // player attached cooldown is === 0, or just less than ya know
             {
-                if (touching)
+                if (player.touching)
                 {
+                    //move the player if they are touching ground
                     if (keyRight == true)
                     {
-                        xVel = xVel + (float)Math.Cos(toRadians(camRotate)) * 0.1;
-                        yVel = yVel + (float)Math.Sin(toRadians(camRotate)) * 0.1;
+                        player.xVel = player.xVel + (float)Math.Cos(toRadians(camRotate)) * 0.1;
+                        player.yVel = player.yVel + (float)Math.Sin(toRadians(camRotate)) * 0.1;
 
                     }
                     else if (keyLeft == true)
                     {
-                        xVel = xVel - (float)Math.Cos(toRadians(camRotate)) * 0.1;
-                        yVel = yVel - (float)Math.Sin(toRadians(camRotate)) * 0.1;
+                        player.xVel = player.xVel - (float)Math.Cos(toRadians(camRotate)) * 0.1;
+                        player.yVel = player.yVel - (float)Math.Sin(toRadians(camRotate)) * 0.1;
 
                     }
                 }
 
-                yVel = yVel + gravity.Y;
-                xVel = xVel + gravity.X;
+                player.yVel = player.yVel + gravity.Y;
+                player.xVel = player.xVel + gravity.X;
 
             }
-            if (!touching && stickyBoost > 0)
+            //if the player can do some mid air sticky boost stuff and he isn't touching the ground
+            if (!player.touching && player.stickyBoost > 0)
             { 
                 if (keyLeft)
                 {
-                    xVel = xVel - (float)Math.Cos(toRadians(camRotate)) * 0.075;
-                    yVel = yVel - (float)Math.Sin(toRadians(camRotate)) * 0.075;
-                    stickyBoost--;
+                    player.xVel = player.xVel - (float)Math.Cos(toRadians(camRotate)) * 0.075;
+                    player.yVel = player.yVel - (float)Math.Sin(toRadians(camRotate)) * 0.075;
+                    player.stickyBoost--;
                     attatchedCoolDown = 0;
-                    CreateParticle((float)xPos + (float)(ballSize * zoom), (float)yPos + (float)(ballSize * zoom), (float)(r.NextDouble() * 2) - 1f + 3 + (float)xVel, (float)(r.NextDouble() * 2) - 1f - (float)yVel, 1, 1, 1, r.Next(5) + 12, (float)(r.NextDouble() * -0.6) - 0.2f);
+                    CreateParticle((float)player.xPos + (float)(player.ballSize * zoom), (float)player.yPos + (float)(player.ballSize * zoom), (float)(r.NextDouble() * 2) - 1f + 3 + (float)player.xVel, (float)(r.NextDouble() * 2) - 1f - (float)player.yVel, 1, 1, 1, r.Next(5) + 12, (float)(r.NextDouble() * -0.6) - 0.2f);
                 }
                 if (keyRight)
                 {
-                    stickyBoost--;
-                    xVel = xVel + (float)Math.Cos(toRadians(camRotate)) * 0.075;
-                    yVel = yVel + (float)Math.Sin(toRadians(camRotate)) * 0.075;
+                    player.stickyBoost--;
+                    player.xVel = player.xVel + (float)Math.Cos(toRadians(camRotate)) * 0.075;
+                    player.yVel = player.yVel + (float)Math.Sin(toRadians(camRotate)) * 0.075;
                     attatchedCoolDown = 0;
-                    CreateParticle((float)xPos + (float)(ballSize * zoom), (float)yPos + (float)(ballSize * zoom), (float)(r.NextDouble() * 2) - 1f - 3 + (float)xVel, (float)(r.NextDouble() * 2) - 1f - (float)yVel, 1, 1, 1, r.Next(5) + 12, (float)(r.NextDouble() * -0.6) - 0.2f);
+                    CreateParticle((float)player.xPos + (float)(player.ballSize * zoom), (float)player.yPos + (float)(player.ballSize * zoom), (float)(r.NextDouble() * 2) - 1f - 3 + (float)player.xVel, (float)(r.NextDouble() * 2) - 1f - (float)player.yVel, 1, 1, 1, r.Next(5) + 12, (float)(r.NextDouble() * -0.6) - 0.2f);
                 }
                 if (keyDown)
                 {
-                    xVel = xVel + (float)Math.Sin(toRadians(camRotate)) * 0.075;
-                    yVel = yVel - (float)Math.Cos(toRadians(camRotate)) * 0.075;
-                    stickyBoost--;
-                    CreateParticle((float)xPos + (float)(ballSize * zoom), (float)yPos + (float)(ballSize * zoom), (float)(r.NextDouble() * 2) - 1f + (float)xVel, (float)(r.NextDouble() * 2) - 1f - (float)yVel - 3, 1, 1, 1, r.Next(5) + 12, (float)(r.NextDouble() * -0.6) - 0.2f);
+                    player.xVel = player.xVel + (float)Math.Sin(toRadians(camRotate)) * 0.075;
+                    player.yVel = player.yVel - (float)Math.Cos(toRadians(camRotate)) * 0.075;
+                    player.stickyBoost--;
+                    CreateParticle((float)player.xPos + (float)(player.ballSize * zoom), (float)player.yPos + (float)(player.ballSize * zoom), (float)(r.NextDouble() * 2) - 1f + (float)player.xVel, (float)(r.NextDouble() * 2) - 1f - (float)player.yVel - 3, 1, 1, 1, r.Next(5) + 12, (float)(r.NextDouble() * -0.6) - 0.2f);
                     attatchedCoolDown = 0;
                 }
                 if (keyUp)
                 {
-                    liftedUpSinceTouched = 1;
-                    xVel = xVel - (float)Math.Sin(toRadians(camRotate)) * 0.075;
-                    yVel = yVel + (float)Math.Cos(toRadians(camRotate)) * 0.075;
-                    stickyBoost--;
-                    CreateParticle((float)xPos + (float)(ballSize * zoom), (float)yPos + (float)(ballSize * zoom), (float)(r.NextDouble() * 2) - 1f + (float)xVel, (float)(r.NextDouble() * 2) - 1f - (float)yVel + 3, 1, 1, 1, r.Next(5) + 12, (float)(r.NextDouble() * -0.6) - 0.2f);
+                    player.liftedUpSinceTouched = 1;
+                    player.xVel = player.xVel - (float)Math.Sin(toRadians(camRotate)) * 0.075;
+                    player.yVel = player.yVel + (float)Math.Cos(toRadians(camRotate)) * 0.075;
+                    player.stickyBoost--;
+                    CreateParticle((float)player.xPos + (float)(player.ballSize * zoom), (float)player.yPos + (float)(player.ballSize * zoom), (float)(r.NextDouble() * 2) - 1f + (float)player.xVel, (float)(r.NextDouble() * 2) - 1f - (float)player.yVel + 3, 1, 1, 1, r.Next(5) + 12, (float)(r.NextDouble() * -0.6) - 0.2f);
                     attatchedCoolDown = 0;
                 }
             }
@@ -1859,85 +1913,92 @@ namespace StickySlimeBall
 
 
         }
+
+
         private void UpdatePlayerAndBall()
         {
-            double ballX = xPos + ballSize;
-            double ballY = yPos + ballSize;
+            //check the players collision with other ball elements
+            double ballX = player.xPos + player.ballSize;
+            double ballY = player.yPos + player.ballSize;
             for (int i = 0; i < bCollides.Count; i++)
             {
                 BallCollide b = bCollides[i];
                 double ballX2 = b.xPos + b.ballSize;
                 double ballY2 = b.yPos + b.ballSize;
                 double dis = Distance(ballX, ballY, ballX2, ballY2);
-                if (dis < ballSize + b.ballSize && b.touchCount < 2 && touching == true)
+                if (dis < player.ballSize + b.ballSize && b.touchCount < 2 && player.touching == true)
                 {
                     Vector toPos = new Vector(ballX2 - ballX, ballY2 - ballY);
                     toPos.Normalize();
-                    toPos.X = toPos.X * (ballSize + b.ballSize);
-                    toPos.Y = toPos.Y * (ballSize + b.ballSize);
+                    toPos.X = toPos.X * (player.ballSize + b.ballSize);
+                    toPos.Y = toPos.Y * (player.ballSize + b.ballSize);
                     ballX2 = ballX + toPos.X;
                     ballY2 = ballY + toPos.Y;
                     b.xPos = ballX2 - b.ballSize;
                     b.yPos = ballY2 - b.ballSize;
-                    b.xVel = xVel;
-                    b.yVel = yVel;
+                    b.xVel = player.xVel;
+                    b.yVel = player.yVel;
                 }
-                else if (dis < ballSize + b.ballSize)
+                else if (dis < player.ballSize + b.ballSize)
                 {
                     Vector toPos = new Vector(ballX2 - ballX, ballY2 - ballY);
                     toPos.Normalize();
-                    yVel = yVel * -1;
-                    double dot = (xVel * toPos.X + (yVel) * toPos.Y);
-                    xVel = xVel - (2 * (dot * toPos.X));
-                    yVel = yVel - (2 * (dot * toPos.Y));
-                    yVel = yVel * -0.7;
-                    xVel = xVel * 0.7;
+                    player.yVel = player.yVel * -1;
+                    double dot = (player.xVel * toPos.X + (player.yVel) * toPos.Y);
+                    player.xVel = player.xVel - (2 * (dot * toPos.X));
+                    player.yVel = player.yVel - (2 * (dot * toPos.Y));
+                    player.yVel = player.yVel * -0.7;
+                    player.xVel = player.xVel * 0.7;
 
-                    toPos.X = toPos.X * (ballSize + b.ballSize + 1);
-                    toPos.Y = toPos.Y * (ballSize + b.ballSize + 1);
+                    toPos.X = toPos.X * (player.ballSize + b.ballSize + 1);
+                    toPos.Y = toPos.Y * (player.ballSize + b.ballSize + 1);
                     ballX = ballX2 - toPos.X;
                     ballY = ballY2 - toPos.Y;
-                    xPos = ballX - ballSize;
-                    yPos = ballY - ballSize;
+                    player.xPos = ballX - player.ballSize;
+                    player.yPos = ballY - player.ballSize;
                     b.health = b.health - 40;
 
                 }
             }
         }
+
+        //updates the text elements, or info graphics in the game
         private void UpdateInfo()
         {
-        double ballX = xPos + ballSize;
-        double ballY = yPos + ballSize;
-        for (int i = 0; i < Information.Count(); i ++)
-        {
+            double ballX = player.xPos + player.ballSize;
+            double ballY = player.yPos + player.ballSize;
+            for (int i = 0; i < Information.Count(); i ++)
+            {
 
                 InfoText text = Information[i];
                 //get the distance of the ball to the text position, but don't sqrt because that causes a lot of processing
                 double dis = ((ballX - text.xPos) * (ballX - text.xPos) + (ballY - text.yPos) * (ballY - text.yPos));
                 if(dis < text.dis * text.dis)
                 {
-                //if ball is close enough it will sqrt and then calculate the transition state, consisting of
-                dis = Math.Sqrt(dis);
-                //opacity
-                text.textInfo.Opacity = 1 - (dis / text.dis);
-                //transition position with rotation
-                Vector moveFrom = new Vector(text.xPos - text.slideFromX, text.yPos - text.slideFromY);
-                moveFrom.X = moveFrom.X * (1 - dis / text.dis);
-                moveFrom.Y = moveFrom.Y * (1 - dis / text.dis);
-                Vector p1 = new Vector((text.slideFromX + moveFrom.X), (text.slideFromY + moveFrom.Y));
-                p1 = RotatePoint(p1, new Vector(ballX, ballY), camRotate);
+                    //if ball is close enough it will sqrt and then calculate the transition state, consisting of opacity and position and rotate
+                    dis = Math.Sqrt(dis);
+                    //opacity
+                    text.textInfo.Opacity = 1 - (dis / text.dis);
+                    //transition position with rotation
+                    Vector moveFrom = new Vector(text.xPos - text.slideFromX, text.yPos - text.slideFromY);
+                    moveFrom.X = moveFrom.X * (1 - dis / text.dis);
+                    moveFrom.Y = moveFrom.Y * (1 - dis / text.dis);
+                    Vector p1 = new Vector((text.slideFromX + moveFrom.X), (text.slideFromY + moveFrom.Y));
+                    p1 = RotatePoint(p1, new Vector(ballX, ballY), camRotate);
 
-                double x1 = ((p1.X - (text.xSize / 2)) * zoom + (cameraX * zoom)) + MyCanvas.ActualWidth / 2;
-                double y1 = ((p1.Y - (text.ySize / 2)) * zoom + (cameraY * zoom)) + MyCanvas.ActualHeight / 2;
-                Canvas.SetLeft(text.textInfo, x1);
-                Canvas.SetTop(text.textInfo, y1);
-            }
+                    double x1 = ((p1.X - (text.xSize / 2)) * zoom + (cameraX * zoom)) + MyCanvas.ActualWidth / 2;
+                    double y1 = ((p1.Y - (text.ySize / 2)) * zoom + (cameraY * zoom)) + MyCanvas.ActualHeight / 2;
+                    Canvas.SetLeft(text.textInfo, x1);
+                    Canvas.SetTop(text.textInfo, y1);
+                }
                 else
-            {
-                text.textInfo.Opacity = 0;
+                {
+                    text.textInfo.Opacity = 0;
+                }
             }
         }
-            }
+
+        //update the moving platforms in the game
         private void UpdatePlatforms()
         {
             for (int i = 0; i < movingPlatforms.Count; i++)
@@ -2059,17 +2120,19 @@ namespace StickySlimeBall
             return p1;
             
         }
+
+        //updates the switches and plates
         private CollideLine UpdateSwitch(CollideLine c)
         {
-            double ballX = xPos + ballSize;
-            double ballY = yPos + ballSize;
+            double ballX = player.xPos + player.ballSize;
+            double ballY = player.yPos + player.ballSize;
             if (c.MoreData[1] == 0)
             {
                 if (c.activatedSpecial)
                 {
                     Vector p1 = new Vector(c.x2, c.y2);
                     Vector p2 = new Vector(c.x2 + 15, c.y2 - 30);
-                    p1 = RotatePoint(p1, new Vector(xPos + ballSize, yPos + ballSize), camRotate);
+                    p1 = RotatePoint(p1, new Vector(player.xPos + player.ballSize, player.yPos + player.ballSize), camRotate);
                     p2 = RotatePoint(p2, new Vector(ballX, ballY), camRotate);
 
                     double x1 = (p1.X * zoom + (cameraX * zoom)) + MyCanvas.ActualWidth / 2;
@@ -2150,10 +2213,10 @@ namespace StickySlimeBall
         }
         private bool GoThroughLines(bool foundWall, bool set, bool update)
         {
-            double ballX = xPos + ballSize;
-            double ballY = yPos + ballSize;
+            double ballX = player.xPos + player.ballSize;
+            double ballY = player.yPos + player.ballSize;
             bool hit = false;
-            double biggestDot = ballSize;
+            double biggestDot = player.ballSize;
             
             for (int i = 0; i < collides.Count; i++)
             {
@@ -2165,7 +2228,7 @@ namespace StickySlimeBall
                 {
                     c.lineShape.Stroke = Brushes.DarkBlue;
                     c.lineShape.StrokeThickness = 5;
-                    if(touching && touchingIndex == i)
+                    if(player.touching && player.touchingIndex == i)
                     {
                         //if we are colliding with the ball we will set the gravity to the normal of the surface
                         gravity.X = c.normal.X * c.MoreData[0];
@@ -2336,10 +2399,10 @@ namespace StickySlimeBall
                 {
                     c.lineShape.Stroke = Brushes.Purple;
                     c.lineShape.StrokeThickness = 5;
-                    if(touchingIndex == i && touching && died == 0)
+                    if(player.touchingIndex == i && player.touching && player.died == 0)
                     {
-                       
-                        died = 150;
+
+                        player.died = 150;
                         lockCam = false;
                        
                     }
@@ -2372,21 +2435,21 @@ namespace StickySlimeBall
                                     movePos.Y = movePos.Y * c.MoreData[2];
                                     c.x1 = c.x1 - (float)movePos.X;
                                     c.y1 = c.y1 - (float)movePos.Y;
-                                    if (i == touchingIndex && c.canStick)
+                                    if (i == player.touchingIndex && c.canStick)
                                     {
                                         friction = false;
                                         if (c.MoreData[4] == 0)
                                         {
                                             c.MoreData[4] = 1;
-                                            xVel = xVel + movePos.X;
-                                            yVel = yVel + movePos.Y;
+                                            player.xVel = player.xVel + movePos.X;
+                                            player.yVel = player.yVel + movePos.Y;
                                         }
                                         else
                                         {
-                                            xVel = xVel - movePos.X;
-                                            yVel = yVel - movePos.Y;
-                                            xVel = xVel + movePos.X;
-                                            yVel = yVel + movePos.Y;
+                                            player.xVel = player.xVel - movePos.X;
+                                            player.yVel = player.yVel - movePos.Y;
+                                            player.xVel = player.xVel + movePos.X;
+                                            player.yVel = player.yVel + movePos.Y;
                                         }
                                         //xPos = xPos - movePos.X;
                                         //yPos = yPos - movePos.Y;
@@ -2404,21 +2467,21 @@ namespace StickySlimeBall
                                     movePos.Y = movePos.Y * c.MoreData[2];
                                     c.x2 = c.x2 - (float)movePos.X;
                                     c.y2 = c.y2 - (float)movePos.Y;
-                                    if (i == touchingIndex && c.canStick)
+                                    if (i == player.touchingIndex && c.canStick)
                                     {
                                         friction = false;
                                         if (c.MoreData[4] == 0)
                                         {
                                             c.MoreData[4] = 1;
-                                            xVel = xVel + movePos.X;
-                                            yVel = yVel + movePos.Y;
+                                            player.xVel = player.xVel + movePos.X;
+                                            player.yVel = player.yVel + movePos.Y;
                                         }
                                         else
                                         {
-                                            xVel = xVel - movePos.X;
-                                            yVel = yVel - movePos.Y;
-                                            xVel = xVel + movePos.X;
-                                            yVel = yVel + movePos.Y;
+                                            player.xVel = player.xVel - movePos.X;
+                                            player.yVel = player.yVel - movePos.Y;
+                                            player.xVel = player.xVel + movePos.X;
+                                            player.yVel = player.yVel + movePos.Y;
                                         }
                                         //xPos = xPos - movePos.X;
                                         //yPos = yPos - movePos.Y;
@@ -2444,21 +2507,22 @@ namespace StickySlimeBall
                                     movePos.Y = movePos.Y * c.MoreData[2];
                                     c.x1 = c.x1 - (float)movePos.X;
                                     c.y1 = c.y1 - (float)movePos.Y;
-                                    if (i == touchingIndex && c.canStick)
+                                    if (i == player.touchingIndex && c.canStick)
                                     {
                                         friction = false;
                                         if (c.MoreData[4] == 0)
                                         {
                                             c.MoreData[4] = 1;
-                                            xVel = xVel + movePos.X;
-                                            yVel = yVel + movePos.Y;
+                                            player.xVel = player.xVel + movePos.X;
+                                            player.yVel = player.yVel + movePos.Y;
                                         }
                                         else
                                         {
-                                            xVel = xVel - movePos.X;
-                                            yVel = yVel - movePos.Y;
-                                            xVel = xVel + movePos.X;
-                                            yVel = yVel + movePos.Y;
+                                            //TODO is this needed???
+                                            player.xVel = player.xVel - movePos.X;
+                                            player.yVel = player.yVel - movePos.Y;
+                                            player.xVel = player.xVel + movePos.X;
+                                            player.yVel = player.yVel + movePos.Y;
                                         }
                                         //xPos = xPos - movePos.X;
                                         //yPos = yPos - movePos.Y;
@@ -2481,21 +2545,22 @@ namespace StickySlimeBall
                                     movePos.Y = movePos.Y * c.MoreData[2];
                                     c.x2 = c.x2 - (float)movePos.X;
                                     c.y2 = c.y2 - (float)movePos.Y;
-                                    if (i == touchingIndex && c.canStick)
+                                    if (i == player.touchingIndex && c.canStick)
                                     {
                                         friction = false;
                                         if (c.MoreData[4] == 0)
                                         {
                                             c.MoreData[4] = 1;
-                                            xVel = xVel + movePos.X;
-                                            yVel = yVel + movePos.Y;
+                                            player.xVel = player.xVel + movePos.X;
+                                            player.yVel = player.yVel + movePos.Y;
                                         }
                                         else
                                         {
-                                            xVel = xVel - movePos.X;
-                                            yVel = yVel - movePos.Y;
-                                            xVel = xVel + movePos.X;
-                                            yVel = yVel + movePos.Y;
+                                            //TODO is this needed?
+                                            player.xVel = player.xVel - movePos.X;
+                                            player.yVel = player.yVel - movePos.Y;
+                                            player.xVel = player.xVel + movePos.X;
+                                            player.yVel = player.yVel + movePos.Y;
                                         }
                                         //xPos = xPos - movePos.X;
                                         //yPos = yPos - movePos.Y;
@@ -2527,21 +2592,21 @@ namespace StickySlimeBall
                                     movePos.Y = movePos.Y * c.MoreData[2];
                                     c.x1 = c.x1 - (float)movePos.X;
                                     c.y1 = c.y1 - (float)movePos.Y;
-                                    if (i == touchingIndex && c.canStick)
+                                    if (i == player.touchingIndex && c.canStick)
                                     {
                                         friction = false;
                                         if (c.MoreData[4] == 0)
                                         {
                                             c.MoreData[4] = 1;
-                                            xVel = xVel + movePos.X;
-                                            yVel = yVel + movePos.Y;
+                                            player.xVel = player.xVel + movePos.X;
+                                            player.yVel = player.yVel + movePos.Y;
                                         }
                                         else
                                         {
-                                            xVel = xVel - movePos.X;
-                                            yVel = yVel - movePos.Y;
-                                            xVel = xVel + movePos.X;
-                                            yVel = yVel + movePos.Y;
+                                            player.xVel = player.xVel - movePos.X;
+                                            player.yVel = player.yVel - movePos.Y;
+                                            player.xVel = player.xVel + movePos.X;
+                                            player.yVel = player.yVel + movePos.Y;
                                         }
                                         //xPos = xPos - movePos.X;
                                         //yPos = yPos - movePos.Y;
@@ -2564,21 +2629,21 @@ namespace StickySlimeBall
                                     movePos.Y = movePos.Y * c.MoreData[2];
                                     c.x2 = c.x2 - (float)movePos.X;
                                     c.y2 = c.y2 - (float)movePos.Y;
-                                    if (i == touchingIndex && c.canStick)
+                                    if (i == player.touchingIndex && c.canStick)
                                     {
                                         friction = false;
                                         if (c.MoreData[4] == 0)
                                         {
                                             c.MoreData[4] = 1;
-                                            xVel = xVel + movePos.X;
-                                            yVel = yVel + movePos.Y;
+                                            player.xVel = player.xVel + movePos.X;
+                                            player.yVel = player.yVel + movePos.Y;
                                         }
                                         else
                                         {
-                                            xVel = xVel - movePos.X;
-                                            yVel = yVel - movePos.Y;
-                                            xVel = xVel + movePos.X;
-                                            yVel = yVel + movePos.Y;
+                                            player.xVel = player.xVel - movePos.X;
+                                            player.yVel = player.yVel - movePos.Y;
+                                            player.xVel = player.xVel + movePos.X;
+                                            player.yVel = player.yVel + movePos.Y;
                                         }
                                         //xPos = xPos - movePos.X;
                                         //yPos = yPos - movePos.Y;
@@ -2605,20 +2670,20 @@ namespace StickySlimeBall
                                     movePos.Y = movePos.Y * c.MoreData[2];
                                     c.x1 = c.x1 - (float)movePos.X;
                                     c.y1 = c.y1 - (float)movePos.Y;
-                                    if (i == touchingIndex && c.canStick)
+                                    if (i == player.touchingIndex && c.canStick)
                                     {
                                         if (c.MoreData[4] == 0)
                                         {
                                             c.MoreData[4] = 1;
-                                            xVel = xVel + movePos.X;
-                                            yVel = yVel + movePos.Y;
+                                            player.xVel = player.xVel + movePos.X;
+                                            player.yVel = player.yVel + movePos.Y;
                                         }
                                         else
                                         {
-                                            xVel = xVel - movePos.X;
-                                            yVel = yVel - movePos.Y;
-                                            xVel = xVel + movePos.X;
-                                            yVel = yVel + movePos.Y;
+                                            player.xVel = player.xVel - movePos.X;
+                                            player.yVel = player.yVel - movePos.Y;
+                                            player.xVel = player.xVel + movePos.X;
+                                            player.yVel = player.yVel + movePos.Y;
                                         }
                                         //xPos = xPos - movePos.X;
                                         //yPos = yPos - movePos.Y;
@@ -2636,21 +2701,21 @@ namespace StickySlimeBall
                                     movePos.Y = movePos.Y * c.MoreData[2];
                                     c.x2 = c.x2 - (float)movePos.X;
                                     c.y2 = c.y2 - (float)movePos.Y;
-                                    if (i == touchingIndex && c.canStick)
+                                    if (i == player.touchingIndex && c.canStick)
                                     {
                                         friction = false;
                                         if (c.MoreData[4] == 0)
                                         {
                                             c.MoreData[4] = 1;
-                                            xVel = xVel + movePos.X;
-                                            yVel = yVel + movePos.Y;
+                                            player.xVel = player.xVel + movePos.X;
+                                            player.yVel = player.yVel + movePos.Y;
                                         }
                                         else
                                         {
-                                            xVel = xVel - movePos.X;
-                                            yVel = yVel - movePos.Y;
-                                            xVel = xVel + movePos.X;
-                                            yVel = yVel + movePos.Y;
+                                            player.xVel = player.xVel - movePos.X;
+                                            player.yVel = player.yVel - movePos.Y;
+                                            player.xVel = player.xVel + movePos.X;
+                                            player.yVel = player.yVel + movePos.Y;
                                         }
                                         //xPos = xPos - movePos.X;
                                         //yPos = yPos - movePos.Y;
@@ -2868,7 +2933,7 @@ namespace StickySlimeBall
                     CollideLine c3 = collides[c.index2Refrence];
                     
 
-                    if ((touchingIndex == i || c.index1Refrence == touchingIndex || c.index2Refrence == touchingIndex) && lastTouchingTime > 1)
+                    if ((player.touchingIndex == i || c.index1Refrence == player.touchingIndex || c.index2Refrence == player.touchingIndex) && player.lastTouchingTime > 1)
                     {
                        
                         if (c.activatedSpecial == false)
@@ -2919,15 +2984,18 @@ namespace StickySlimeBall
                 addedVelY = addedVelY * 1;
                 if(c.type == 2)
                 {
-                    addedVelY = (float)yVel;
+                    addedVelY = (float)player.yVel;
                 }
-                double dotVel = (c.normal.X * (xVel + addedVelX) + c.normal.Y * ((yVel * -1) + addedVelY));
+                double dotVel = (c.normal.X * (player.xVel + addedVelX) + c.normal.Y * ((player.yVel * -1) + addedVelY));
                 Vector v = new Vector(c.x1 - ballX, c.y1 - ballY);
                 double dot2 = (v.X * c.normal.X + v.Y * c.normal.Y);
                 if ((dotVel > 0))// || (c.isMovingPlatform  && touchingIndex != i))
                 {
+                    //get a vector for the line we are going to test collision with
                     Vector v1 = new Vector(c.x1 - c.x2, c.y1 - c.y2);
                     Vector vel = new Vector(c.normal.X, c.normal.Y);
+
+                    //project the ball position onto the line vector, then get a collision point through this
                     double perp1 = PerpVec(v1, vel);
                     double perp2 = PerpVec(v, vel);
 
@@ -2943,19 +3011,21 @@ namespace StickySlimeBall
                     {
                         maxLength = 0;
                     }
-
+                    //if the distance the projection has is less than the actaul line then we won't collide with it
                     if (length < -maxLength)
                     {
                         collisionPoint.X = c.x1;
                         collisionPoint.Y = c.y1;
                         canCollide = false;
                     }
+                    //if the distance of the projection is greater than the line we won't collide with it
                     if (length > v1Length + maxLength)
                     {
                         collisionPoint.X = c.x2;
                         collisionPoint.Y = c.y2;
                         canCollide = false;
                     }
+                    //if we get a garbage number we will just set it to the ball position odds are its due to the length being tiny
                     if (double.IsInfinity(collisionPoint.Y))
                     {
                         collisionPoint.Y = ballY;
@@ -2966,9 +3036,9 @@ namespace StickySlimeBall
                     }
                     v1 = new Vector(c.x1 - c.x2, c.y1 - c.y2);
                     v = new Vector(collisionPoint.X - ballX, collisionPoint.Y - ballY);
-                    vel = new Vector(xVel, yVel * -1);
+                    vel = new Vector(player.xVel, player.yVel * -1);
                     double dot = (v.X * c.normal.X + v.Y * c.normal.Y);
-                        
+                    //
                     if (dot < biggestDot && canCollide && c.lastDot[0] > biggestDot - 10)
                     {
                         if (set)
@@ -2984,9 +3054,9 @@ namespace StickySlimeBall
 
                         if (0 == 0)
                         {
-                            touching = true;
-                            lastTouchingTime = maxTouchingCountDown;
-                        vel = new Vector(xVel, yVel);
+                            player.touching = true;
+                            player.lastTouchingTime = player.maxTouchingCountDown;
+                        vel = new Vector(player.xVel, player.yVel);
 
                         Vector destinationPoint = new Vector(ballX + vel.X, ballY - vel.Y);
                         Vector newBasePoint = new Vector(ballX, ballY);
@@ -3011,26 +3081,26 @@ namespace StickySlimeBall
 */
                         if (foundWall == false)
                             {
-                                touchingNormal.X = c.normal.X;
-                                touchingNormal.Y = c.normal.Y;
+                                player.touchingNormal.X = c.normal.X;
+                                player.touchingNormal.Y = c.normal.Y;
                                 foundWall = true;
                             }
-                            if ((stickingOn == 2 || keyLeft) && c.normal.X < 0 && Math.Abs(c.normal.X) > Math.Abs(c.normal.Y))
+                            if ((player.stickingOn == 2 || keyLeft) && c.normal.X < 0 && Math.Abs(c.normal.X) > Math.Abs(c.normal.Y))
                             {
-                                touchingNormal.X = c.normal.X;
-                                touchingNormal.Y = c.normal.Y;
+                                player.touchingNormal.X = c.normal.X;
+                                player.touchingNormal.Y = c.normal.Y;
                                 foundWall = true;
                             }
-                            if ((stickingOn == 1 || keyRight) && c.normal.X > 0 && Math.Abs(c.normal.X) > Math.Abs(c.normal.Y))
+                            if ((player.stickingOn == 1 || keyRight) && c.normal.X > 0 && Math.Abs(c.normal.X) > Math.Abs(c.normal.Y))
                             {
-                                touchingNormal.X = c.normal.X;
-                                touchingNormal.Y = c.normal.Y;
+                                player.touchingNormal.X = c.normal.X;
+                                player.touchingNormal.Y = c.normal.Y;
                                 foundWall = true;
                             }
-                            if ((stickingOn == 3 || keyUp) && c.normal.Y < 0 && Math.Abs(c.normal.X) < Math.Abs(c.normal.Y))
+                            if ((player.stickingOn == 3 || keyUp) && c.normal.Y < 0 && Math.Abs(c.normal.X) < Math.Abs(c.normal.Y))
                             {
-                                touchingNormal.X = c.normal.X;
-                                touchingNormal.Y = c.normal.Y;
+                                player.touchingNormal.X = c.normal.X;
+                                player.touchingNormal.Y = c.normal.Y;
                                 foundWall = true;
                             }
                             if (c.canStick)
@@ -3046,19 +3116,19 @@ namespace StickySlimeBall
                         {
                             c.MoreData[0] = 1;
                         }
-                        touchingIndex = i;
+                        player.touchingIndex = i;
                         //move the position of the ball back to where it should be
-                        xPos = (collisionPoint.X - (ballSize) - c.normal.X * ballSize);
-                        yPos = (collisionPoint.Y - (ballSize) - c.normal.Y * ballSize);
-                        ballX = xPos + ballSize;
-                        ballY = yPos + ballSize;
-                        Canvas.SetLeft(Ball, (xPos + cameraX) + MyCanvas.ActualWidth / 2);
-                        Canvas.SetTop(Ball, (yPos + cameraY) + MyCanvas.ActualHeight / 2);
+                        player.xPos = (collisionPoint.X - (player.ballSize) - c.normal.X * player.ballSize);
+                        player.yPos = (collisionPoint.Y - (player.ballSize) - c.normal.Y * player.ballSize);
+                        ballX = player.xPos + player.ballSize;
+                        ballY = player.yPos + player.ballSize;
+                        Canvas.SetLeft(Ball, (player.xPos + cameraX) + MyCanvas.ActualWidth / 2);
+                        Canvas.SetTop(Ball, (player.yPos + cameraY) + MyCanvas.ActualHeight / 2);
 
                         if (c.type != 4 || c.MoreData[12] == 1)
                         {
-                            xVel = vel.X;
-                            yVel = vel.Y;
+                            player.xVel = vel.X;
+                            player.yVel = vel.Y;
                             hit = true;
                         }
                         else if(c.MoreData[11] == 0)
@@ -3085,15 +3155,15 @@ namespace StickySlimeBall
                                     checkVel.X = (inputVel.X - (checkVel.X));
                                     checkVel.Y = (inputVel.Y - (checkVel.Y));
 
-                                    inputVel = new Vector(xVel, yVel);
+                                    inputVel = new Vector(player.xVel, player.yVel);
                                     Vector vel2 = response(inputVel, new Vector(ballX, ballY), collisionPoint);
 
-                                    xVel = (vel2.X);
-                                    yVel = (vel2.Y);
-                                    Vector velo = new Vector((xVel) - (checkVel.X), yVel - (checkVel.Y));
-                                    
-                                    xVel = (velo.X);
-                                    yVel = (velo.Y);
+                                    player.xVel = (vel2.X);
+                                    player.yVel = (vel2.Y);
+                                    Vector velo = new Vector((player.xVel) - (checkVel.X), player.yVel - (checkVel.Y));
+
+                                    player.xVel = (velo.X);
+                                    player.yVel = (velo.Y);
 
                                 }
                             }
@@ -3117,15 +3187,15 @@ namespace StickySlimeBall
                                     checkVel.X = (inputVel.X - (checkVel.X));
                                     checkVel.Y = (inputVel.Y - (checkVel.Y));
 
-                                    inputVel = new Vector(xVel, yVel);
+                                    inputVel = new Vector(player.xVel, player.yVel);
                                     Vector vel2 = response(inputVel, new Vector(ballX, ballY), collisionPoint);
 
-                                    xVel = (vel2.X);
-                                    yVel = (vel2.Y);
-                                    Vector velo = new Vector((xVel) - (checkVel.X), yVel - (checkVel.Y));
+                                    player.xVel = (vel2.X);
+                                    player.yVel = (vel2.Y);
+                                    Vector velo = new Vector((player.xVel) - (checkVel.X), player.yVel - (checkVel.Y));
 
-                                    xVel = (velo.X);
-                                    yVel = (velo.Y);
+                                    player.xVel = (velo.X);
+                                    player.yVel = (velo.Y);
 
                                 }
                             }
@@ -3239,42 +3309,42 @@ namespace StickySlimeBall
             double lastCamX = cameraX;
             double lastCamY = cameraY;
             Vector p1 = new Vector(-cameraX, -cameraY);
-            p1 = RotatePoint(p1, new Vector(xPos + ballSize, yPos + ballSize), camRotate);
+            p1 = RotatePoint(p1, new Vector(player.xPos + player.ballSize, player.yPos + player.ballSize), camRotate);
             cameraX = -p1.X;
             cameraY = -p1.Y;
             if (paused == false)
             {
                 double x1 = 100;
                 double x2 = MyCanvas.ActualWidth - 100;
-                double stickySt = stickyBoost;
-                double stickyMax = maxBoost;
+                double stickySt = player.stickyBoost;
+                double stickyMax = player.maxBoost;
                 x2 = (x2 - x1) * Math.Abs(stickySt / stickyMax);
                 stickyBoostShown.StrokeThickness = 10;
                 stickyBoostShown.X1 = 100;
                 stickyBoostShown.Y1 = MyCanvas.ActualHeight - 10;
                 stickyBoostShown.X2 = x1 + x2;
                 stickyBoostShown.Y2 = MyCanvas.ActualHeight - 10;
-                if (died == 0)
+                if (player.died == 0)
                 {
-                    yPos = yPos - yVel;
-                    xPos = xPos + xVel;
+                    player.xPos = player.xPos + player.xVel;
+                    player.yPos = player.yPos - player.yVel;
                 }
                 StickOnWall();
                 //yPos = yPos + addedYVel;
                 //xPos = xPos + addedXVel;
                 
-                if (lastTouchingTime > 0)
+                if (player.lastTouchingTime > 0)
                 {
-                    lastTouchingTime = lastTouchingTime - 1;
+                    player.lastTouchingTime = player.lastTouchingTime - 1;
 
                 }
-                if (lastTouchingTime > 10)
+                if (player.lastTouchingTime > 10)
                 {
-                    touching = true;
+                    player.touching = true;
                 }
                 else
                 {
-                    touching = false;
+                    player.touching = false;
                 }
                 UpdatePlayerAndBall();
                 UpdatePlatforms();
@@ -3376,24 +3446,24 @@ namespace StickySlimeBall
                 {
                     GoThroughLines(true, true, true);
                     GoThroughLines(true, true, true);
-                    Canvas.SetLeft(Ball, (xPos - cameraX) + MyCanvas.ActualWidth / 2);
-                    Canvas.SetTop(Ball, (yPos - cameraY) + MyCanvas.ActualHeight / 2);
+                    Canvas.SetLeft(Ball, (player.xPos - cameraX) + MyCanvas.ActualWidth / 2);
+                    Canvas.SetTop(Ball, (player.yPos - cameraY) + MyCanvas.ActualHeight / 2);
                     //GoThroughLines(true, true, true);
                 }
 
 
-                Canvas.SetLeft(Ball, (xPos * zoom + (cameraX * zoom)) + MyCanvas.ActualWidth / 2);
-                Canvas.SetTop(Ball, (yPos * zoom + (cameraY * zoom)) + MyCanvas.ActualHeight / 2);
+                Canvas.SetLeft(Ball, (player.xPos * zoom + (cameraX * zoom)) + MyCanvas.ActualWidth / 2);
+                Canvas.SetTop(Ball, (player.yPos * zoom + (cameraY * zoom)) + MyCanvas.ActualHeight / 2);
                 cameraX = lastCamX;
                 cameraY = lastCamY;
 
-                Ball.Width = (ballSize * 2) * zoom;
-                Ball.Height = (ballSize * 2) * zoom;
+                Ball.Width = (player.ballSize * 2) * zoom;
+                Ball.Height = (player.ballSize * 2) * zoom;
 
-                double dis = Distance(-xPos, -yPos, cameraX, cameraY);
+                double dis = Distance(-player.xPos, -player.yPos, cameraX, cameraY);
                 if (dis > 2 && lockCam)
                 {
-                    Vector moveCam = new Vector(cameraX - (-xPos), cameraY - (-yPos));
+                    Vector moveCam = new Vector(cameraX - (-player.xPos), cameraY - (-player.yPos));
                     moveCam.Normalize();
                     moveCam.X = moveCam.X * ((dis / 10));
                     moveCam.Y = moveCam.Y * ((dis / 10));
@@ -3401,13 +3471,13 @@ namespace StickySlimeBall
                     cameraX = cameraX - moveCam.X;
                     cameraY = cameraY - moveCam.Y;
                 }
-                if (died > 65)
+                if (player.died > 65)
                 {
                     //Canvas.SetLeft(Ball, ((xPos - (Ball.Width / zoom / 2)) * zoom + (cameraX * zoom)) + MyCanvas.ActualWidth / 2);
                     //Canvas.SetTop(Ball, ((yPos - (Ball.Width / zoom / 2)) * zoom + (cameraY * zoom)) + MyCanvas.ActualHeight / 2);
                 }
 
-                if (died > 100)
+                if (player.died > 100)
                 {
                     if (Ball.Opacity > 0)
                     {
@@ -3417,16 +3487,16 @@ namespace StickySlimeBall
 
                     //Ball.Width = Ball.Width * 1.3;
                     //Ball.Height = Ball.Height * 1.3;
-                    died = died - 1;
-                    xVel = 0;
-                    yVel = 0;
+                    player.died = player.died - 1;
+                    player.xVel = 0;
+                    player.yVel = 0;
                     if (zoom < 5)
                     {
                         zoom = zoom * 1.006;
                     }
                     //camRotate = camRotate + 6;
                 }
-                else if (died > 65)
+                else if (player.died > 65)
                 {
 
                     if (zoom < 5)
@@ -3438,72 +3508,72 @@ namespace StickySlimeBall
                     Fade.Height = MyCanvas.ActualHeight;
                     Canvas.SetLeft(Fade, 0);
                     Canvas.SetTop(Fade, 0);
-                    died = died - 1;
-                    Ball.Width = (ballSize * 2) * zoom;
-                    Ball.Height = (ballSize * 2) * zoom;
+                    player.died = player.died - 1;
+                    Ball.Width = (player.ballSize * 2) * zoom;
+                    Ball.Height = (player.ballSize * 2) * zoom;
                     Ball.Opacity = 0;
                 }
-                else if (died > 30)
+                else if (player.died > 30)
                 {
-                    xPos = lastSafeXPos;
-                    yPos = lastSafeYPos;
-                    cameraX = -xPos;
-                    cameraY = -yPos;
-                    camRotate = lastSafeCamRotate;
-                    rotateTo = (float)lastSafeCamRotate;
-                    xVel = lastSafeTouchingNormal.X;
-                    yVel = -lastSafeTouchingNormal.Y;
+                    player.xPos = player.lastSafeXPos;
+                    player.yPos = player.lastSafeYPos;
+                    cameraX = -player.xPos;
+                    cameraY = -player.yPos;
+                    camRotate = player.lastSafeCamRotate;
+                    rotateTo = (float)player.lastSafeCamRotate;
+                    player.xVel = player.lastSafeTouchingNormal.X;
+                    player.yVel = -player.lastSafeTouchingNormal.Y;
                     zoom = 0.6;
-                    touchingIndex = lastSafeTouchingIndex;
-                    touchingNormal = lastSafeTouchingNormal;
-                    gravity.X = lastSafeGravity.X;
-                    gravity.Y = lastSafeGravity.Y;
+                    player.touchingIndex = player.lastSafeTouchingIndex;
+                    player.touchingNormal = player.lastSafeTouchingNormal;
+                    gravity.X = player.lastSafeGravity.X;
+                    gravity.Y = player.lastSafeGravity.Y;
                     Fade.Opacity = Fade.Opacity - (1.0 / 35.0);
                     Fade.Width = MyCanvas.ActualWidth;
                     Fade.Height = MyCanvas.ActualHeight;
                     Canvas.SetLeft(Fade, 0);
                     Canvas.SetTop(Fade, 0);
-                    died = died - 1;
+                    player.died = player.died - 1;
                 }
-                else if (died > 0)
+                else if (player.died > 0)
                 {
-                    if (stickyBoost > 0)
+                    if (player.stickyBoost > 0)
                     {
-                        stickyBoost = stickyBoost - 2;
+                        player.stickyBoost = player.stickyBoost - 2;
                     }
                     else
                     {
-                        stickyBoost = 0;
+                        player.stickyBoost = 0;
                     }
-                    died = died - 1;
+                    player.died = player.died - 1;
                     if (Ball.Opacity < 1)
                     {
                         Ball.Opacity = Ball.Opacity + (1.0 / 30.0);
                     }
                     lockCam = true;
                 }
-                if (yPos <= -2800 && level == 2)
+                if (player.yPos <= -2800 && level == 2)
                 {
                     gravity.Y = 0;
-                    if (maxBoost < 600)
+                    if (player.maxBoost < 600)
                     {
-                        maxBoost = maxBoost + 10;
+                        player.maxBoost = player.maxBoost + 10;
                     }
                 }
                 else if (level == 2)
                 {
-                    if (yPos >= -2800 && yPos <= -2000)
+                    if (player.yPos >= -2800 && player.yPos <= -2000)
                     {
                         gravity.Y = -0.1;
-                        if (maxBoost > 300)
+                        if (player.maxBoost > 300)
                         {
-                            maxBoost = maxBoost - 10;
+                            player.maxBoost = player.maxBoost - 10;
                         }
                     }
                 }
                 if (level == 2)
                 {
-                    if (xPos > 9000 && yPos < -1000)
+                    if (player.xPos > 9000 && player.yPos < -1000)
                     {
                         if (Fade.Opacity < 1)
                         {
@@ -3940,9 +4010,9 @@ namespace StickySlimeBall
             {
                 keyLeft = false;
             }
-            if(e.Key == Key.R && died == 0)
+            if(e.Key == Key.R && player.died == 0)
             {
-                died = 150;
+                player.died = 150;
             }
         }
 

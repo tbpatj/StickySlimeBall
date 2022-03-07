@@ -20,6 +20,10 @@ namespace StickySlimeBall
         public int index3Refrence = -1;
 
         public bool activatedSpecial = false;
+
+        // type 2 = switch
+        // type 0 
+        //type 7 = gravity line
         public float type = 0;
         //Moving
         public bool isMovingPlatform = false;
