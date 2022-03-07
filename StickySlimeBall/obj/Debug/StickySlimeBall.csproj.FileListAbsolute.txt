@@ -1,0 +1,29 @@
+\\mac\home\documents\visual studio 2015\Projects\StickySlimeBall\StickySlimeBall\bin\Debug\StickySlimeBall.exe.config
+\\Mac\Home\Documents\Visual Studio 2015\Projects\StickySlimeBall\StickySlimeBall\bin\Debug\StickySlimeBall.exe
+\\Mac\Home\Documents\Visual Studio 2015\Projects\StickySlimeBall\StickySlimeBall\bin\Debug\StickySlimeBall.pdb
+\\Mac\Home\Documents\Visual Studio 2015\Projects\StickySlimeBall\StickySlimeBall\obj\Debug\StickySlimeBall.csprojResolveAssemblyReference.cache
+\\Mac\Home\Documents\Visual Studio 2015\Projects\StickySlimeBall\StickySlimeBall\obj\Debug\MainWindow.g.cs
+\\Mac\Home\Documents\Visual Studio 2015\Projects\StickySlimeBall\StickySlimeBall\obj\Debug\App.g.cs
+\\Mac\Home\Documents\Visual Studio 2015\Projects\StickySlimeBall\StickySlimeBall\obj\Debug\StickySlimeBall_MarkupCompile.cache
+\\Mac\Home\Documents\Visual Studio 2015\Projects\StickySlimeBall\StickySlimeBall\obj\Debug\StickySlimeBall_MarkupCompile.lref
+\\Mac\Home\Documents\Visual Studio 2015\Projects\StickySlimeBall\StickySlimeBall\obj\Debug\MainWindow.baml
+\\Mac\Home\Documents\Visual Studio 2015\Projects\StickySlimeBall\StickySlimeBall\obj\Debug\StickySlimeBall.g.resources
+\\Mac\Home\Documents\Visual Studio 2015\Projects\StickySlimeBall\StickySlimeBall\obj\Debug\StickySlimeBall.Properties.Resources.resources
+\\Mac\Home\Documents\Visual Studio 2015\Projects\StickySlimeBall\StickySlimeBall\obj\Debug\StickySlimeBall.csproj.GenerateResource.Cache
+\\Mac\Home\Documents\Visual Studio 2015\Projects\StickySlimeBall\StickySlimeBall\obj\Debug\StickySlimeBall.exe
+\\Mac\Home\Documents\Visual Studio 2015\Projects\StickySlimeBall\StickySlimeBall\obj\Debug\StickySlimeBall.pdb
+C:\Users\luebk\Downloads\StickySlimeBall-20220307T171106Z-001\StickySlimeBall\StickySlimeBall\bin\Debug\StickySlimeBall.exe.config
+C:\Users\luebk\Downloads\StickySlimeBall-20220307T171106Z-001\StickySlimeBall\StickySlimeBall\bin\Debug\StickySlimeBall.exe
+C:\Users\luebk\Downloads\StickySlimeBall-20220307T171106Z-001\StickySlimeBall\StickySlimeBall\bin\Debug\StickySlimeBall.pdb
+C:\Users\luebk\Downloads\StickySlimeBall-20220307T171106Z-001\StickySlimeBall\StickySlimeBall\obj\Debug\StickySlimeBall.csprojAssemblyReference.cache
+C:\Users\luebk\Downloads\StickySlimeBall-20220307T171106Z-001\StickySlimeBall\StickySlimeBall\obj\Debug\MainWindow.g.cs
+C:\Users\luebk\Downloads\StickySlimeBall-20220307T171106Z-001\StickySlimeBall\StickySlimeBall\obj\Debug\App.g.cs
+C:\Users\luebk\Downloads\StickySlimeBall-20220307T171106Z-001\StickySlimeBall\StickySlimeBall\obj\Debug\StickySlimeBall_MarkupCompile.cache
+C:\Users\luebk\Downloads\StickySlimeBall-20220307T171106Z-001\StickySlimeBall\StickySlimeBall\obj\Debug\StickySlimeBall_MarkupCompile.lref
+C:\Users\luebk\Downloads\StickySlimeBall-20220307T171106Z-001\StickySlimeBall\StickySlimeBall\obj\Debug\MainWindow.baml
+C:\Users\luebk\Downloads\StickySlimeBall-20220307T171106Z-001\StickySlimeBall\StickySlimeBall\obj\Debug\StickySlimeBall.g.resources
+C:\Users\luebk\Downloads\StickySlimeBall-20220307T171106Z-001\StickySlimeBall\StickySlimeBall\obj\Debug\StickySlimeBall.Properties.Resources.resources
+C:\Users\luebk\Downloads\StickySlimeBall-20220307T171106Z-001\StickySlimeBall\StickySlimeBall\obj\Debug\StickySlimeBall.csproj.GenerateResource.cache
+C:\Users\luebk\Downloads\StickySlimeBall-20220307T171106Z-001\StickySlimeBall\StickySlimeBall\obj\Debug\StickySlimeBall.csproj.CoreCompileInputs.cache
+C:\Users\luebk\Downloads\StickySlimeBall-20220307T171106Z-001\StickySlimeBall\StickySlimeBall\obj\Debug\StickySlimeBall.exe
+C:\Users\luebk\Downloads\StickySlimeBall-20220307T171106Z-001\StickySlimeBall\StickySlimeBall\obj\Debug\StickySlimeBall.pdb

@@ -1,0 +1,67 @@
+﻿<Window x:Name="Window" x:Class="StickySlimeBall.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Sticky_Slime_Ball"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="350" Width="525" KeyUp="Window_KeyUp" KeyDown="Window_KeyDown">
+    <Canvas x:Name="MyCanvas">
+        <Ellipse x:Name="Ball" Fill="#FFF4F4F5" Height="45" Canvas.Left="17" Stroke="Black" Canvas.Top="264" Width="51"/>
+        <TextBlock x:Name="time" TextWrapping="Wrap" Text="00:00" TextAlignment="Center" FontSize="21.333" Height="30" Canvas.Left="324" Canvas.Top="10" Width="183"/>
+        <Rectangle x:Name="Fade" Fill="Black" Height="31" Stroke="Black" RenderTransformOrigin="0.5,0.5" Width="31" Panel.ZIndex="1" Opacity="0"/>
+        <TextBlock x:Name="Info" TextWrapping="Wrap" Canvas.Top="36" Height="118" Width="162"/>
+        <Rectangle x:Name="PauseRect" Fill="White" Height="203" Canvas.Left="53" Stroke="#FF424242" Canvas.Top="56" Width="397" StrokeThickness="5" Visibility="Hidden" Panel.ZIndex="2"/>
+        <Button x:Name="ResumeButton" Content="Resume" Canvas.Left="187" Canvas.Top="72" Width="106" Height="31" Visibility="Hidden" Panel.ZIndex="2"/>
+        <Button x:Name="ContinueButton" Content="Continue" Canvas.Left="355" Canvas.Top="224" Width="75" Click="ContinueButton_Click" Panel.ZIndex="2" Height="25" Visibility="Hidden"/>
+        <Ellipse x:Name="ScoreSlot1" Height="64" Canvas.Left="110" Stroke="Black" StrokeThickness="2" Canvas.Top="127" Width="64" Visibility="Hidden" Panel.ZIndex="2">
+            <Ellipse.Fill>
+                <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                    <GradientStop Color="#FF272727"/>
+                    <GradientStop Color="#FF9C9C9C" Offset="0.937"/>
+                </LinearGradientBrush>
+            </Ellipse.Fill>
+        </Ellipse>
+        <Ellipse x:Name="ScoreSlot2" Height="64" Canvas.Left="204" Stroke="Black" StrokeThickness="2" Canvas.Top="127" Width="64" Visibility="Hidden" Panel.ZIndex="2">
+            <Ellipse.Fill>
+                <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                    <GradientStop Color="#FF272727"/>
+                    <GradientStop Color="#FF9C9C9C" Offset="0.937"/>
+                </LinearGradientBrush>
+            </Ellipse.Fill>
+        </Ellipse>
+        <Ellipse x:Name="ScoreSlot3" Height="64" Canvas.Left="292" Stroke="Black" StrokeThickness="2" Canvas.Top="127" Width="64" Visibility="Hidden" Panel.ZIndex="2">
+            <Ellipse.Fill>
+                <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                    <GradientStop Color="#FF272727"/>
+                    <GradientStop Color="#FF9C9C9C" Offset="0.937"/>
+                </LinearGradientBrush>
+            </Ellipse.Fill>
+        </Ellipse>
+        <Ellipse x:Name="ScoreSlotFill1" Height="64" Canvas.Left="110" Stroke="Black" StrokeThickness="2" Canvas.Top="127" Width="64" Visibility="Hidden" Panel.ZIndex="2">
+            <Ellipse.Fill>
+                <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                    <GradientStop Color="#FF5B5B2F" Offset="0.849"/>
+                    <GradientStop Color="#FFE2E291" Offset="0.014"/>
+                </LinearGradientBrush>
+            </Ellipse.Fill>
+        </Ellipse>
+        <Ellipse x:Name="ScoreSlotFill2" Height="64" Canvas.Left="204" Stroke="Black" StrokeThickness="2" Canvas.Top="127" Width="64" Visibility="Hidden" Panel.ZIndex="2">
+            <Ellipse.Fill>
+                <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                    <GradientStop Color="#FF5B5B2F" Offset="0.849"/>
+                    <GradientStop Color="#FFE2E291" Offset="0.014"/>
+                </LinearGradientBrush>
+            </Ellipse.Fill>
+        </Ellipse>
+        <Ellipse x:Name="ScoreSlotFill3" Height="64" Canvas.Left="292" Stroke="Black" StrokeThickness="2" Canvas.Top="127" Width="64" Visibility="Hidden" Panel.ZIndex="2">
+            <Ellipse.Fill>
+                <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                    <GradientStop Color="#FF5B5B2F" Offset="0.849"/>
+                    <GradientStop Color="#FFE2E291" Offset="0.014"/>
+                </LinearGradientBrush>
+            </Ellipse.Fill>
+        </Ellipse>
+        <TextBlock x:Name="ScoreDisplay" Canvas.Left="150" TextWrapping="Wrap" Text="Score: 0" Canvas.Top="202" Height="26" Width="169" FontSize="14.667" TextAlignment="Center" Visibility="Hidden" Panel.ZIndex="2"/>
+    </Canvas>
+</Window>
