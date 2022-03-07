@@ -50,20 +50,31 @@ namespace StickySlimeBall
             double ballY = yPos + ballSize;
             bool hit = false;
             double biggestDot = ballSize;
+            //iterate thorugh all the lines, and check the collisions
             for (int i = 0; i < collides.Count; i++)
             {
+                //c is a line
                 CollideLine c = collides[i];
+
+                //check if the velocity we have is going toward the ball, this is for optimization
                 double dotVel = (c.normal.X * xVel + c.normal.Y * (yVel * -1));
-                Vector v = new Vector(c.x1 - ballX, c.y1 - ballY);
-                double dot2 = (v.X * c.normal.X + v.Y * c.normal.Y);
+
+                
+               
 
                 if (dotVel > 0)
                 {
+                    //This dot product checks if we are on collision side of the line
+                    Vector v = new Vector(c.x1 - ballX, c.y1 - ballY);
+                    double dot2 = (v.X * c.normal.X + v.Y * c.normal.Y);
+
+
                     Vector v1 = new Vector(c.x1 - c.x2, c.y1 - c.y2);
                     Vector vel = new Vector(c.normal.X, c.normal.Y);
                     double perp1 = perpVec(v1, vel);
                     double perp2 = perpVec(v, vel);
 
+                    //project the ball's mid point onto a vector that has the direction of the line we are testing the collision with
                     double length = (perp2 / perp1) * v1.Length;
                     double v1Length = v1.Length;
                     v1.Normalize();
@@ -71,12 +82,16 @@ namespace StickySlimeBall
                     v1.Y = v1.Y * length;
                     Vector collisionPoint = new Vector(c.x1 - v1.X, c.y1 - v1.Y);
                     bool canCollide = true;
+
+                    //if the collision point on a plane is before the line actually starts, then set the collision point to the end point
                     if (length < -10)
                     {
                         collisionPoint.X = c.x1;
                         collisionPoint.Y = c.y1;
+                       //we know that the collision should be too far if its beyond 10, due to the ball size so we disable collision with this plane
                         canCollide = false;
                     }
+                    //if its after the line ends then set it to the other end point
                     if (length > v1Length + 10)
                     {
                         collisionPoint.X = c.x2;
@@ -92,19 +107,26 @@ namespace StickySlimeBall
                         collisionPoint.X = ballX;
                     }
                     v1 = new Vector(c.x1 - c.x2, c.y1 - c.y2);
+                    
+                    //create a vector that holds the magnitude between the ball and the collision point
                     v = new Vector(collisionPoint.X - ballX, collisionPoint.Y - ballY);
                     vel = new Vector(xVel, yVel * -1);
+
+                    //now we check what is the closest collision point so we can calculate that first
+                    
                     double dot = (v.X * c.normal.X + v.Y * c.normal.Y);
                     if (dot < biggestDot && canCollide && c.lastDot[index + 1] > biggestDot - 10)
                     {
                         c.lastDot[index + 1] = 0;
                         if (touchingIndex != i)
                         {
+                            //we iterate through all the lines a couple times so touch count increases
                             touchingIndex = i;
                             touchCount++;
                         }
                         if (type == 0)
                         {
+                            //if the type is 0 we will add a friction force
                             dot = (vel.X * c.normal.X + (vel.Y) * c.normal.Y);
                             vel.X = vel.X - (2 * (dot * c.normal.X));
                             vel.Y = vel.Y - (2 * (dot * c.normal.Y));
@@ -120,11 +142,10 @@ namespace StickySlimeBall
                             vel.X = (vel.X * normX) + (normX * c.normal.X * -0.1);
                             vel.Y = vel.Y * Math.Abs((c.normal.X));
 
-                            // vel.X = vel.X + c.normal.X;
-                            //vel.X = vel.X + c.normal.X;
                             touchingNormal.X = c.normal.X;
                             touchingNormal.Y = c.normal.Y;
                         }
+                        //update the ball position, this is its new position
                         xPos = (collisionPoint.X - (ballSize) - c.normal.X * ballSize);
                         yPos = (collisionPoint.Y - (ballSize) - c.normal.Y * ballSize);
                         ballX = xPos;
@@ -132,7 +153,7 @@ namespace StickySlimeBall
                         xVel = vel.X;
                         yVel = vel.Y;
                         hit = true;
-                        i = collides.Count + 1;
+                       // i = collides.Count + 1;
                     }
                     else
                     {
@@ -141,11 +162,13 @@ namespace StickySlimeBall
                 }
                 else
                 {
+                    //This dot product checks if we are on collision side of the line
+                    Vector v = new Vector(c.x1 - ballX, c.y1 - ballY);
+                    double dot2 = (v.X * c.normal.X + v.Y * c.normal.Y);
+
                     c.lastDot[index + 1] = dot2;
                 }
 
-                //textBlock.Text = "" + collisionPoint.X + " " + collisionPoint.Y;
-                // velocity - (2 (dot * norm))
 
 
 
