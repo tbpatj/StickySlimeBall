@@ -28,114 +28,114 @@ namespace StickySlimeBall
         /// <summary>
         /// Interaction logic for MainWindow.xaml
         /// </summary>
-        public partial class MainWindow : Window
+    public partial class MainWindow : Window
+    {
+        //objects and lists that store all the items
+        List<CollideLine> collides = new List<CollideLine>();
+        List<BallCollide> bCollides = new List<BallCollide>();
+        List<Particle> particles = new List<Particle>();
+        List<Platform> movingPlatforms = new List<Platform>();
+        List<InfoText> Information = new List<InfoText>();
+        DispatcherTimer timer;
+
+        //key input
+        bool keyUp;
+        bool keyDown;
+        bool keyRight;
+        bool keyLeft;
+
+        //world properties
+        Vector gravity = new Vector(0,-0.1);
+        bool friction = true;
+        bool canStick = false;
+
+        //player properties
+        double xPos = 5100;
+        double yPos = -4100;
+        double yVel = 0;
+        double xVel = 0;
+        double lastSafeXPos = 5100;
+        double lastSafeYPos = -4100;
+        double ballSize = 25;
+        int stickyBoost = 200;
+        int maxBoost = 300;
+        int died = 0;
+        double addedXVel = 0;
+        double addedYVel = 0;
+        //player collision/surface properties
+        bool touching = false;
+        int touchingIndex = -1;
+        int lastSafeTouchingIndex = -1;
+        Vector touchingNormal = new Vector();
+        Vector lastSafeTouchingNormal = new Vector();
+        Vector lastSafeGravity = new Vector(0, -0.1);
+        int maxTouchingCountDown = 15;
+        int movingPlatformTouch = -1;
+        int stickingOn = 1;
+        int liftedUpSinceTouched = 0;
+        int lastTouchingTime = 0;
+
+        //camera properties
+        double cameraX = 0;
+        double cameraY = 0;
+        double zoom = 0.6;
+        double camRotate = 0;
+        float rotateTo = 0;
+        bool lockCam = true;
+        float CamDis = 0;
+        double lastSafeCamRotate = 0;
+
+        // gameplay/gameflow
+        int finalSwitch = 0;
+        bool paused = false;
+        int Score = 0;
+        int pauseReason = 0;
+        int addedSecond = 0;
+        int addedMinute = 0;
+        int lastSecond = 0;
+        int lastMinute = 0;
+        int attatchedCoolDown = 0;
+        DateTime startTime = new DateTime();
+        int level = 1;
+        int connectSize = 5;
+        Line stickyBoostShown = new Line();
+        Random r = new Random();
+        public MainWindow()
         {
-            //objects and lists that store all the items
-            List<CollideLine> collides = new List<CollideLine>();
-            List<BallCollide> bCollides = new List<BallCollide>();
-            List<Particle> particles = new List<Particle>();
-            List<Platform> movingPlatforms = new List<Platform>();
-            List<InfoText> Information = new List<InfoText>();
-            DispatcherTimer timer;
-
-            //key input
-            bool keyUp;
-            bool keyDown;
-            bool keyRight;
-            bool keyLeft;
-
-            //world properties
-            Vector gravity = new Vector(0,-0.1);
-            bool friction = true;
-            bool canStick = false;
-
-            //player properties
-            double xPos = 5100;
-            double yPos = -4100;
-            double yVel = 0;
-            double xVel = 0;
-            double lastSafeXPos = 5100;
-            double lastSafeYPos = -4100;
-            double ballSize = 25;
-            int stickyBoost = 200;
-            int maxBoost = 300;
-            int died = 0;
-            double addedXVel = 0;
-            double addedYVel = 0;
-            //player collision/surface properties
-            bool touching = false;
-            int touchingIndex = -1;
-            int lastSafeTouchingIndex = -1;
-            Vector touchingNormal = new Vector();
-            Vector lastSafeTouchingNormal = new Vector();
-            Vector lastSafeGravity = new Vector(0, -0.1);
-            int maxTouchingCountDown = 15;
-            int movingPlatformTouch = -1;
-            int stickingOn = 1;
-            int liftedUpSinceTouched = 0;
-            int lastTouchingTime = 0;
-
-            //camera properties
-            double cameraX = 0;
-            double cameraY = 0;
-            double zoom = 0.6;
-            double camRotate = 0;
-            float rotateTo = 0;
-            bool lockCam = true;
-            float CamDis = 0;
-            double lastSafeCamRotate = 0;
-
-            // gameplay/gameflow
-            int finalSwitch = 0;
-            bool paused = false;
-            int Score = 0;
-            int pauseReason = 0;
-            int addedSecond = 0;
-            int addedMinute = 0;
-            int lastSecond = 0;
-            int lastMinute = 0;
-            int attatchedCoolDown = 0;
-            DateTime startTime = new DateTime();
-            int level = 1;
-            int connectSize = 5;
-            Line stickyBoostShown = new Line();
-            Random r = new Random();
-            public MainWindow()
-            {
-                //set up the sticky boost bar
-                InitializeComponent();
-                stickyBoostShown.X1 = 100;
-                stickyBoostShown.Y1 = MyCanvas.ActualHeight + 100;
-                stickyBoostShown.X2 = MyCanvas.ActualWidth - 100;
-                stickyBoostShown.Y2 = MyCanvas.ActualHeight + 100;
-                stickyBoostShown.Stroke = Brushes.DarkGreen;
-                stickyBoostShown.StrokeThickness = 2;
-                MyCanvas.Children.Add(stickyBoostShown);
+            //set up the sticky boost bar
+            InitializeComponent();
+            stickyBoostShown.X1 = 100;
+            stickyBoostShown.Y1 = MyCanvas.ActualHeight + 100;
+            stickyBoostShown.X2 = MyCanvas.ActualWidth - 100;
+            stickyBoostShown.Y2 = MyCanvas.ActualHeight + 100;
+            stickyBoostShown.Stroke = Brushes.DarkGreen;
+            stickyBoostShown.StrokeThickness = 2;
+            MyCanvas.Children.Add(stickyBoostShown);
            
-                //load up the level
-                level = 1;
-                LoadLevel(level);
+            //load up the level
+            level = 1;
+            LoadLevel(level);
                 
-                //calculate all the surface normals
-                GoThroughLines(false, true,true);
+            //calculate all the surface normals
+            GoThroughLines(false, true,true);
                 
-                //set up the timer for gameplay and score
-                DateTime now = DateTime.Now;
-                addedSecond = now.Second;
-                addedMinute = now.Minute;
-                startTime = now;
-                timer = new DispatcherTimer();
-                timer.Interval = new TimeSpan(0, 0, 0, 0, 10);
-                timer.Tick += Timer_Tick;
-                timer.Start();
-            }
-            private void CreateBlock(int x, int y, int xSize, int ySize, bool sticks1, bool sticks2, bool sticks3, bool sticks4)
-            {
-                CreateLine(x - xSize / 2, y - ySize / 2, x + xSize / 2, y - ySize / 2, true, sticks1);
-                CreateLine(x + xSize / 2, y - ySize / 2, x + xSize / 2, y + ySize / 2, true, sticks2);
-                CreateLine(x + xSize / 2, y + ySize / 2, x - xSize / 2, y + ySize / 2, true, sticks3);
-                CreateLine(x - xSize / 2, y + ySize / 2, x - xSize / 2, y - ySize / 2, true, sticks4);
-            }
+            //set up the timer for gameplay and score
+            DateTime now = DateTime.Now;
+            addedSecond = now.Second;
+            addedMinute = now.Minute;
+            startTime = now;
+            timer = new DispatcherTimer();
+            timer.Interval = new TimeSpan(0, 0, 0, 0, 10);
+            timer.Tick += Timer_Tick;
+            timer.Start();
+        }
+        private void CreateBlock(int x, int y, int xSize, int ySize, bool sticks1, bool sticks2, bool sticks3, bool sticks4)
+        {
+            CreateLine(x - xSize / 2, y - ySize / 2, x + xSize / 2, y - ySize / 2, true, sticks1);
+            CreateLine(x + xSize / 2, y - ySize / 2, x + xSize / 2, y + ySize / 2, true, sticks2);
+            CreateLine(x + xSize / 2, y + ySize / 2, x - xSize / 2, y + ySize / 2, true, sticks3);
+            CreateLine(x - xSize / 2, y + ySize / 2, x - xSize / 2, y - ySize / 2, true, sticks4);
+        }
         private void LoadLevel(int levelNum)
         {
             //remove all previous children and objects inside the world
