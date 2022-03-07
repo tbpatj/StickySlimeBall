@@ -15,6 +15,9 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 
 
+//Old code from 2018
+
+
 namespace StickySlimeBall
 {
     /// <summary>
